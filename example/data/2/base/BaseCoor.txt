@@ -1,0 +1,3 @@
+  BaseCoor      X             Y           Z                 COMMENT       
+                                                            END OF HEADER       
+		  -2267796.9640   5009421.6975   3220952.5435
