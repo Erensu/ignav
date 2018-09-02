@@ -29,5 +29,6 @@ IGNAV目前仅支持在Linux环境下编译，具体过程与编译CMAKE工程�
 
 #  参考
 [1] http://www.rtklib.com
+
 [2] P.D.Groves,Principles of GNSS,Intertial,and Multisensor Integrated Navigation System
 
