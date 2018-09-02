@@ -12,8 +12,9 @@ IGNAV主要功能包括：
   6. 双天线航向辅助；
   7. 静对准、动对准初始化；
   8. INS正向和反向机械编排；
-  9. 初步支持视觉信息辅助定位定姿；
-  10. 车载轨迹动态显示等。
+  9. INS/GNSS正向和反向组合滤波；
+  10. 初步支持视觉信息辅助定位定姿；
+  11. 车载轨迹动态显示等。
 
 #  配置
 IGNAV在解算数据前，需要编辑相应的配置文件，配置文件的编写可以参考RTKLIB的说明文档，配置文件在/example/conf目录。
@@ -25,7 +26,9 @@ IGNAV在解算数据前，需要编辑相应的配置文件，配置文件的编
 IGNAV目前仅支持在Linux环境下编译，具体过程与编译CMAKE工程一样。
 
 #  运行
-在目录/example/demo下有相应视频Demo。
+在目录/example/demo下有相应视频Demo；
+plot运行需要安装Qt．
+运行命令：navapp -o ../example/conf/navlib.conf -m 52716
 
 #  参考
 [1] http://www.rtklib.com
