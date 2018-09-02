@@ -19,7 +19,7 @@ IGNAV主要功能包括：
 IGNAV在解算数据前，需要编辑相应的配置文件，配置文件的编写可以参考RTKLIB的说明文档，配置文件在/example/conf目录下。
 
 #  解算
-默认IGNAV解算结果放在bin文件navapp所在目录下。
+默认IGNAV解算结果放在bin文件navapp所在目录。
 
 #  编译
 IGNAV目前仅支持在Linux环境下编译，具体过程与编译CMAKE工程一样。
