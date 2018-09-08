@@ -109,9 +109,7 @@ static int magfilt(insstate_t *ins,const insopt_t *opt,const mag_t *data)
 
     trace(3,"magfilt: nx=%d\n",ins->nx);
 
-    H=zeros(1,ins->nx);
-    x=ins->x;
-    P=ins->P;
+    H=zeros(1,ins->nx); x=ins->x; P=ins->P;
 
     ecef2pos(ins->re,pos);
     ned2xyz(pos,Cne);
@@ -134,9 +132,7 @@ static int magfilt(insstate_t *ins,const insopt_t *opt,const mag_t *data)
     }
     /* close loop cor. for ins states */
     clp(ins,opt,x);
-
-    free(H);
-    return 1;
+    free(H); return 1;
 }
 /* update ins states using magnetometer measurement data---------------------
  * args:    insstate_t *ins  IO  ins states
