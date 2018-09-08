@@ -127,11 +127,14 @@ static int magfilt(insstate_t *ins,const insopt_t *opt,const mag_t *data)
     v=(NORMANG(magh)-NORMANG(yaw))*D2R;
     R=SQR(VAR_MAG);
 
-    if (filter(x,P,H,&v,&R,ins->nx,1)) {
+    if (filter(x,P,H,&v,&R,ins->nx,1)) {  /* update */
         trace(2,"filetr error\n");
         free(H);
         return 0;
     }
+    /* close loop cor. for ins states */
+    clp(ins,opt,x);
+
     free(H);
     return 1;
 }
@@ -151,7 +154,7 @@ extern int magnetometer(insstate_t *ins,const insopt_t *opt,
         return 0;
     }
     if (!magfilt(ins,opt,data)) {
-        trace(2,"magnetic update fail\n");
+        trace(2,"magnetic head update fail\n");
         return 0;
     }
     ins->stat=INSS_MAGH;

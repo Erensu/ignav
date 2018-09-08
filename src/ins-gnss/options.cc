@@ -23,6 +23,7 @@
 *           2016/07/31  1.10 add out-outsingle,out-maxsolstd
 *           2017/06/14  1.11 add out-outvel
 *-----------------------------------------------------------------------------*/
+#include <navlib.h>
 #include "navlib.h"
 
 /* system options buffer -----------------------------------------------------*/
@@ -195,6 +196,7 @@ EXPORT opt_t sysopts[]={
     {"file-bdsfile",    2,  (void *)filopt_.bdsfile,     ""     },
     {"file-monodir",    2,  (void *)prcopt_.monodir,     ""     },
     {"file-gtfile",     2,  (void *)filopt_.gtfile,      ""     },
+    {"file-magfile",    2,  (void *)filopt_.magfile,     ""     },
 
     {"",0,NULL,""} /* terminator */
 };

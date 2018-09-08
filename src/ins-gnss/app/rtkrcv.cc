@@ -518,7 +518,13 @@ static int startsvr(vt_t *vt)
 
     /* read ground truth solutions */
     read_gt_sols(filopt.gtfile,&svr.gtsols,prcopt.gtfmt);
-    
+
+    /* read geomagnetic field modeling cof. */
+    if (svr.rtk.opt.insopt.magh) {
+        if (!magmodel(filopt.magfile)) {
+            trace(2,"read geomagnetic field modeling cof. fail\n");
+        }
+    }
     /* read dcb file */
     if (filopt.dcb) {
         strcpy(sta[0].name,sta_name);

@@ -1334,6 +1334,7 @@ static void *rtksvrthread(void *arg)
     static imu imus={0};
     static img imgs={0};
     static pose_meas_t pose={0};
+    static mag_t mag={0};
 
     unsigned int tick,ticknmea,tick1hz,tickreset;
     unsigned char *p,*q;
@@ -1533,6 +1534,10 @@ static void *rtksvrthread(void *arg)
                     posefusion(iopt,&pose,ins,INSUPD_MEAS);
                 }
             }
+            /* magnetometer auxiliary */
+            if (iopt->magh) {
+                magnetometer(ins,iopt,&mag);
+            }
             rtksvrunlock(svr);
 
             /* output results */
@@ -1586,6 +1591,10 @@ static void *rtksvrthread(void *arg)
             /* doppler measurement aid */
             if (iopt->dopp) {
                 doppler(obsd.data,obsd.n,&svr->nav,opt,ins);
+            }
+            /* magnetometer auxiliary */
+            if (iopt->magh) {
+                magnetometer(ins,iopt,&mag);
             }
             rtksvrunlock(svr);
 

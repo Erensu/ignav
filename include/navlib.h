@@ -1833,6 +1833,7 @@ typedef struct {              /* file options type */
     char solstat[MAXSTRPATH]; /* solution statistics file */
     char trace  [MAXSTRPATH]; /* debug trace file */
     char gtfile [MAXSTRPATH]; /* ground truth file */
+    char magfile[MAXSTRPATH]; /* geomagnetic field model coefficients */
 } filopt_t;
 
 typedef struct {        /* RINEX options type */
