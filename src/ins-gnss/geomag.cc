@@ -106,11 +106,6 @@
 /*                                  hemisphere.                             */
 /*                                                                          */
 /****************************************************************************/
-/*                                                                          */
-/*      Subroutines called :  julday,getshc,interpsh,                       */
-/*                            extrapsh,shval3,dihf                          */
-/*                                                                          */
-/****************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -133,9 +128,9 @@
 #define IEXT 0
 #define RECL 81
 
-#define MAXINBUFF RECL+14        /* Max size of in buffer */
-#define MAXREAD MAXINBUFF-2      /* Max to read 2 less than total size (just to be safe) */
-#define PATH MAXREAD             /* Max path and filename length */
+#define MAXINBUFF RECL+14        /* max size of in buffer */
+#define MAXREAD MAXINBUFF-2      /* max to read 2 less than total size (just to be safe) */
+#define PATH MAXREAD             /* max path and filename length */
 
 #define EXT_COEFF1 (double)0
 #define EXT_COEFF2 (double)0

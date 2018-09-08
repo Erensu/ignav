@@ -587,6 +587,7 @@ extern "C"{
 #define INSS_REINIT    13               /* ins updates status: re-initialization ins states */
 #define INSS_VO        14               /* ins updates status: ins and visual odometry loosely coupled */
 #define INSS_POSE      15               /* ins updates status: pose measurement fusion */
+#define INSS_MAGH      16               /* ins updates status: magnetic heading auxiliary */
 
 #define UPDINT_IMU     1                /* ins updates states time internal by imu data in ins-gnss coupled */
 #define UPDINT_GNSS    2                /* ins updates states time internal by gnss data in ins-gnss coupled */
@@ -758,6 +759,11 @@ typedef struct {                /* observation data record */
     double P[NFREQ+NEXOBS]; /* observation data pseudorange (m) */
     float  D[NFREQ+NEXOBS]; /* observation data doppler frequency (Hz) */
 } obsd_t;
+
+typedef struct {            /* magnetometer measurement data type */
+    gtime_t time;           /* magnetometer measurement data time */
+    double val[3];          /* magnetometer measurement data expressed in body frame */
+} mag_t;
 
 typedef struct {            /* time span for static imu measurement data */
     int n;                  /* number of static imu measurement */
@@ -1075,6 +1081,11 @@ typedef struct {            /* visual odometry aid ins options (here for rectifi
     int    estmac;          /* estimate misalignment of camera to imu body */
 } voaid_t;
 
+typedef struct {            /* magnetometer options type */
+    double sx,sy,sz;        /* magnetometer data scale factor */
+    double ox,oy,oz;        /* magnetometer data offset */
+} magopt_t;
+
 typedef struct {            /* ins options type */
     int exinserr;           /* extend ins error model */
     int inithead;           /* use the roll, pitch and gyro measurements to initial head */
@@ -1131,6 +1142,7 @@ typedef struct {            /* ins options type */
     int zvu;                /* zero velocity update options */
     int zaru;               /* zero augular rate update options */
     int detst;              /* detect static imu measurement data */
+    int magh;               /* magnetometer auxiliary */
 
     int tc;                 /* ins-gnss tightly coupled mode (INSTC_???) */
     int lc;                 /* ins-gnss loosely coupled mode (INSLC_???) */
@@ -1155,6 +1167,7 @@ typedef struct {            /* ins options type */
     ins_zv_t zvopt;         /* ins zero velocity detector options */
     odopt_t odopt;          /* odometry options */
     voaid_t voopt;          /* visual odometry aid ins options */
+    magopt_t magopt;        /* magnetometer options */
     void *gopt;             /* gnss-rtk options */
 } insopt_t;
 
@@ -2979,6 +2992,14 @@ EXPORT int odo(const insopt_t *opt,const imud_t *imu,const odod_t *odo,
                insstate_t *ins);
 EXPORT int readodo(const char *file,odo_t *odo);
 EXPORT void initodo(const odopt_t *opt,insstate_t *ins);
+
+/* magnetic heading-----------------------------------------------------------*/
+EXPORT int magmodel(const char *file);
+EXPORT double maghead(const magopt_t *opt,const mag_t *data,
+                      const double *Cbn,
+                      const double *pos);
+EXPORT int magnetometer(insstate_t *ins,const insopt_t *opt,
+                        const mag_t *data);
 
 /* quaternion common function-------------------------------------------------*/
 EXPORT void quat_init(quat_t *quat, const vec3_t *acc, const vec3_t *mag);

@@ -68,11 +68,14 @@ extern int get_field_components(BField *const bfield,
                                 const double longitude,
                                 const double sdate);
 
-double julday(const int month, const int day, const int year);
+extern double julday(const int month, const int day, const int year);
 
 #ifndef TARGET_EMBEDDED
-int read_model(BFieldModel *const model, const char mdfile[]);
+extern int read_model(BFieldModel *const model, const char mdfile[]);
 #endif
+
+extern BFieldModel mag_model; /* GeoMag model for compute declination */
+extern BField      mag;       /* geomagnetic field values */
 
 #ifdef __cplusplus
 } /* extern "C" */
