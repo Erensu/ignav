@@ -30,7 +30,7 @@ extern int magmodel(const char *file)
 /* tilt compensation to obtain the horizontal magnetic measurements----------*/
 static void untilt(const mag_t *data,const double *Cbn,double *mh)
 {
-    double r=-atan(Cbn[2]/SQRT(1.0-SQR(Cbn[2])));
+    double r=-atan (Cbn[2]/SQRT(1.0-SQR(Cbn[2])));
     double p= atan2(Cbn[5],Cbn[8]);
     double Cbh[6];
 
@@ -126,7 +126,7 @@ static int magfilt(insstate_t *ins,const insopt_t *opt,const mag_t *data)
     R=SQR(VAR_MAG);
 
     if (filter(x,P,H,&v,&R,ins->nx,1)) {  /* update */
-        trace(2,"filetr error\n");
+        trace(2,"filter error\n");
         free(H);
         return 0;
     }

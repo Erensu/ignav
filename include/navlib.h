@@ -3076,6 +3076,12 @@ EXPORT void c2rpy(const double *C,double *rpy);
 EXPORT void addlie(const double *a1,const double *a2,double *a);
 EXPORT void so3_jac(const double *phi,double *Jr,double *Jl);
 
+/* se3 lie group functions----------------------------------------------------*/
+EXPORT void se3_log(const double *R,const double *t,double *omega);
+EXPORT void se3_exp(const double *omg,double *R,double *t);
+EXPORT void se3_hat(const double *omg,double *Omg);
+EXPORT void se3_vee(const double *Omg,double *omg);
+
 /* pose fusion for ins navigation---------------------------------------------*/
 EXPORT int posefusion(const insopt_t *opt,const pose_meas_t *data,
                       insstate_t *ins,int flag);
