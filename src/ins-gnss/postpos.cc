@@ -412,7 +412,7 @@ static int inputgsof(gsof_t *gsofdata,gtime_t timu,const prcopt_t* opt)
     if (!flag) return 0; return 1;
 }
 /* exclude imu measurement data-----------------------------------------------*/
-extern int excluimudata(const prcopt_t *popt,const imud_t *data)
+static int excluimudata(const prcopt_t *popt,const imud_t *data)
 {
     int i;
 

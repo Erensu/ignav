@@ -65,17 +65,17 @@ extern void se3_log(const double *R,const double *t,double *omega)
     if (theta<SMALL_EPS) {
 
         for (i=0;i<3;i++) for (j=0;j<3;j++) {
-                Vi[i+3*j]=I[i+3*j]-0.5*Omega[i+3*j]+1.0/12.0*Vi[i+3*j];
-            }
+            Vi[i+3*j]=I[i+3*j]-0.5*Omega[i+3*j]+1.0/12.0*Vi[i+3*j];
+        }
         matmul("NN",3,1,3,1.0,Vi,t,0.0,omega);
     }
     else {
 
         for (i=0;i<3;i++) for (j=0;j<3;j++) {
-                Vi[i+3*j]=I[i+3*j]-0.5*Omega[i+3*j]+
-                          (1.0-theta/(2.0*tan(theta/2.0)))/(theta*theta)
-                          *Vi[i+3*j];
-            }
+            Vi[i+3*j]=I[i+3*j]-0.5*Omega[i+3*j]+
+                    (1.0-theta/(2.0*tan(theta/2.0)))/(theta*theta)
+                    *Vi[i+3*j];
+        }
         matmul("NN",3,1,3,1.0,Vi,t,0.0,omega);
     }
     return;
@@ -111,8 +111,8 @@ extern void se3_exp(const double *omg,double *R,double *t)
         a=(1.0  -cos(theta))/(theta_sq);
 
         for (i=0;i<3;i++) for (j=0;j<3;j++) {
-                V[i+3*j]=I[i+3*j]+a*Omega[i+3*j]+b*Omega_sq[i+3*j];
-            }
+            V[i+3*j]=I[i+3*j]+a*Omega[i+3*j]+b*Omega_sq[i+3*j];
+        }
     }
     matmul("NN",3,1,3,1.0,V,omg,0.0,t);
     return;
@@ -129,8 +129,8 @@ extern void se3_hat(const double *omg,double *Omg)
 
     so3_hat(omg+3,Omg_);
     for (i=0;i<3;i++) for (j=0;j<3;j++) {
-            Omg[4*i+j]=Omg_[3*i+j];
-        }
+        Omg[4*i+j]=Omg_[3*i+j];
+    }
     Omg[4*3+0]=omg[0];
     Omg[4*3+1]=omg[1];
     Omg[4*3+2]=omg[2];
@@ -148,8 +148,8 @@ extern void se3_vee(const double *Omg,double *omg)
     omg[2]=Omg[4*3+2];
 
     for (i=0;i<3;i++) for (j=0;j<3;j++) {
-            T[3*i+j]=Omg[4*i+j];
-        }
+        T[3*i+j]=Omg[4*i+j];
+    }
     so3_log(T,omg+3,NULL);
 }
 

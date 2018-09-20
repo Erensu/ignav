@@ -930,6 +930,7 @@ typedef struct {            /* ins states type */
     double *x,*P;           /* ekf estimated states/covariance matrix */
     double *xa,*Pa;         /* estimated states and covariance for ins-gnss loosely coupled */
     double *xb,*Pb;         /* fixed states and covariance (except phase bias) */
+    double *x0,*P0,*F;      /* predict states and its covariance matrix/transmit matrix */
 
     double pins[9];         /* ins states (position/velocity/acceleration) of precious epoch in ecef-frame */
     double pCbe[9];         /* ins states (attitude) of precious epoch */
@@ -2918,6 +2919,7 @@ EXPORT int tcigpos(const prcopt_t *opt,const obsd_t *obs,int n,const nav_t *nav,
 EXPORT int doppler(const obsd_t *obs,int n,const nav_t *nav,const prcopt_t *opt,insstate_t *ins);
 EXPORT void initlc(insopt_t *insopt, insstate_t *ins);
 EXPORT void freelc(insstate_t *ins);
+EXPORT void freeins(insstate_t *ins);
 EXPORT void getaccl(const double *fib,const double *Cbe,const double *re,
                     const double *ve,double *ae);
 EXPORT void cnscl(const double *gyro,const double *accl,double *phim,double *dvbm,
