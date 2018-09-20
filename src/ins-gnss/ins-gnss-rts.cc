@@ -269,12 +269,10 @@ static int wrt_solution(const rtk_t *rtk,const solopt_t *solopt)
 
     if (moni.port) {
         n=outsols(buff,&rtk->sol,rtk->rb,solopt,
-                  rtk->opt.mode>=PMODE_INS_UPDATE?rtk->ins:NULL,
+                  &rtk->ins,
                   &rtk->opt.insopt,1);
-        if (rtk->opt.mode>=PMODE_INS_UPDATE&&rtk->opt.mode<=PMODE_INS_TGNSS) {
-            if (c++>OUTSOLFRQ) {
-                strwrite(&moni,buff,n); c=0;
-            }
+        if (c++>OUTSOLFRQ) {
+            strwrite(&moni,buff,n); c=0;
         }
         else {
             strwrite(&moni,buff,n);
@@ -443,7 +441,7 @@ static int fwdfilt(const imu_t *imu,const gsof_data_t *pos,const prcopt_t *popt,
     gsof_t poss={0};
     gmea_t gmea={0};
     rtk_t  rtk={{0}};
-    insopt_t *iopt=&popt->insopt;
+    const insopt_t *iopt=&popt->insopt;
     int ws,init=0;
 
     trace(3,"fwdfilt: ni=%d  np=%d\n",imu->n,pos->n);
