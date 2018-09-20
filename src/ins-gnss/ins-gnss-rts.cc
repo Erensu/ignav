@@ -554,7 +554,8 @@ static int rts(const rtk_t *rtk,const fwd_t *fwd,const double *xsk,
     return 1;
 }
 /* update ins states in backward smoother------------------------------------*/
-static void upd_bwdsmh(insstate_t *ins,const double *xs,const double *Ps,const insopt_t *opt)
+static void upd_bwdsmh(insstate_t *ins,const double *xs,const double *Ps,
+                       const insopt_t *opt)
 {
     /* update states/cov. */
     matcpy(ins->P,Ps,ins->nx,ins->nx);
