@@ -588,6 +588,7 @@ extern "C"{
 #define INSS_VO        14               /* ins updates status: ins and visual odometry loosely coupled */
 #define INSS_POSE      15               /* ins updates status: pose measurement fusion */
 #define INSS_MAGH      16               /* ins updates status: magnetic heading auxiliary */
+#define INSS_RTS       17               /* ins updates status: RTS smoother */
 
 #define UPDINT_IMU     1                /* ins updates states time internal by imu data in ins-gnss coupled */
 #define UPDINT_GNSS    2                /* ins updates states time internal by gnss data in ins-gnss coupled */
@@ -849,7 +850,8 @@ typedef struct {            /* gnss positioning result for ins-gnss loosely coup
     unsigned char stat;     /* status of PVT solution */
     double pe[3];           /* position of gnss antenna in ecef-frame (m) */
     double ve[3];           /* velocity of gnss antenna in ecef-frame (m/s) */
-    double std[6];          /* position/velocity variance from gnss positioning {m^2,m/s^2} */
+    double std[6];          /* position/velocity variance from gnss positioning {m,m/s} {xx,yy,zz} */
+    double covp[9],covv[9]; /* position/velocity covariance {m^2,m/s^2} {xx,yy,zz,xy,xz,yz}*/
 } gmea_t;
 
 typedef struct {            /* pose measurement data struct */
@@ -930,7 +932,7 @@ typedef struct {            /* ins states type */
     double *x,*P;           /* ekf estimated states/covariance matrix */
     double *xa,*Pa;         /* estimated states and covariance for ins-gnss loosely coupled */
     double *xb,*Pb;         /* fixed states and covariance (except phase bias) */
-    double *x0,*P0,*F;      /* predict states and its covariance matrix/transmit matrix */
+    double *P0,*F;          /* predict error states correction and its covariance matrix/transmit matrix */
 
     double pins[9];         /* ins states (position/velocity/acceleration) of precious epoch in ecef-frame */
     double pCbe[9];         /* ins states (attitude) of precious epoch */
@@ -1151,7 +1153,8 @@ typedef struct {            /* ins options type */
     int usecam;             /* use camera measurement to aid ins update states */
     int intpref;            /* time-interpolation for observation when tightly coupled */
     int minp;               /* min number position for ins alignment */
-    int soltype;            /* solution type (0:forward,1:backward,2:combined) */
+    int soltype;            /* solution type (0:forward,1:backward,2:combined,3:RTS) */
+    int transmit_corr;      /* transmit error state correction (dx_t=(I+F*dt)dx_t_1) */
 
     gtime_t ext[16][2];     /* exclude time for processing ins measurement data,[0]: start time,[1]: end time */
 
@@ -1990,10 +1993,10 @@ typedef struct {         /* GSOF message data type */
     int no;              /* unique number assigned to a group of record packet pages.
                           * prevents page mismatches when multiple sets of record packets exist in output stream */
     int solq;            /* position status */
-    int velf;            /* flag of velecity */
+    int velf;            /* flag of velocity */
     double pos[3];       /* ecef position (m) */
     double llh[3];       /* latitude,longitude and height of rover station (rad,m) */
-    double vel[3];       /* enu velecity (m/s) */
+    double vel[3];       /* enu velocity (m/s) */
     double delta[3];     /* earth-centered, earth-fixed x,y,z deltas between the rover and base position (m)*/
     float cov[8];        /* earth-centered, earth-fixed (ecef) position covariance
                           * [0]: position rms,
@@ -2304,9 +2307,12 @@ EXPORT int  getcodepri(int sys, unsigned char code, const char *opt);
 
 /* matrix and vector functions -----------------------------------------------*/
 EXPORT double *mat  (int n, int m);
+EXPORT float  *fmat (int n, int m);
 EXPORT int    *imat (int n, int m);
 EXPORT double *zeros(int n, int m);
+EXPORT float *fzeros(int n, int m);
 EXPORT double *eye  (int n);
+EXPORT float *feye(int n);
 EXPORT double dot (const double *a, const double *b, int n);
 EXPORT float dotf(const float *a, const float *b, int n);
 EXPORT double norm(const double *a, int n);
@@ -2314,6 +2320,9 @@ EXPORT float normf(const float *a, int n);
 EXPORT void cross3(const double *a, const double *b, double *c);
 EXPORT int  normv3(const double *a, double *b);
 EXPORT void matcpy(double *A, const double *B, int n, int m);
+EXPORT void fmatcpy(float *A, const float *B, int n, int m);
+EXPORT void matcpy_d2f(float *A, const double *B, int n, int m);
+EXPORT void matcpy_f2d(double *A, const float *B, int n, int m);
 EXPORT void imatcpy(int *A, const int *B, int n, int m);
 EXPORT void matmul(const char *tr, int n, int k, int m, double alpha,
                    const double *A, const double *B, double beta, double *C);
@@ -2337,6 +2346,7 @@ EXPORT void matfprint(const double *A, int n, int m, int p, int q, FILE *fp);
 
 EXPORT void matt(const double *A,int n,int m,double *At);
 EXPORT void svd(const double *A,int m,int n,double *U,double *W,double *V);
+EXPORT void matpow(const double *A,int m,int p,double *B);
 
 EXPORT void asi_blk_mat(double *A,int m,int n,const double *B,int p ,int q,
                         int isr,int isc);
@@ -2424,6 +2434,7 @@ EXPORT void tracelevel(int level);
 EXPORT void trace    (int level, const char *format, ...);
 EXPORT void tracet   (int level, const char *format, ...);
 EXPORT void tracemat (int level, const double *A, int n, int m, int p, int q);
+EXPORT void tracemat_std(int level, const double *A, int n, int m, int p, int q);
 EXPORT void traceimat(const int *A,int n,int m,int p,int q);
 EXPORT void traceobs (int level, const obsd_t *obs, int n);
 EXPORT void tracenav (int level, const nav_t *nav);
@@ -2909,7 +2920,7 @@ EXPORT void gapv2ipv(const double *pos,const double *vel,const double *Cbe,
 EXPORT void insp2antp(const insstate_t *ins,double *rr);
 EXPORT int ant2inins(gtime_t time,const double *rr,const double *vr,
                      const insopt_t *opt,const imu_t *imu,insstate_t *ins,int *iimu);
-EXPORT void propinss(const insstate_t *ins,const insopt_t *opt,double dt,
+EXPORT void propinss(insstate_t *ins,const insopt_t *opt,double dt,
                      double *x,double *P);
 EXPORT void getP0(const insopt_t *opt,double *P0);
 EXPORT int lcigpos(const insopt_t *opt, const imud_t *data, insstate_t *ins,
@@ -2972,6 +2983,15 @@ EXPORT int calibdualant(const insopt_t *opt,const solbuf_t *solbuf,
 EXPORT int calibdualantx(const insopt_t *opt,const solbuf_t *solbuf,
                          posebuf_t *posebuf,gtime_t ts,gtime_t te,
                          double *Cvb,double *std);
+
+/* close-loop for states ----------------------------------------------------*/
+EXPORT void lcclp(double *x,double *Cbe,double *re,double *ve,double *fib,
+                  double *omgb,double *Gg, double *rec,double *vec,double *aec,
+                  double *bac, double *bgc,double *Mac,double *Mgc,
+                  double *leverc,double *Cbec,double *fibc,double *omgbc,
+                  const insopt_t *opt);
+
+EXPORT int bckup_ins_info(insstate_t *ins,const insopt_t *opt,int type);
 
 /* motion constraint---------------------------------------------------------*/
 EXPORT int nhc(insstate_t *ins,const insopt_t *opt,const imud_t *imu);
@@ -3087,6 +3107,11 @@ EXPORT void se3_vee(const double *Omg,double *omg);
 /* pose fusion for ins navigation---------------------------------------------*/
 EXPORT int posefusion(const insopt_t *opt,const pose_meas_t *data,
                       insstate_t *ins,int flag);
+
+/* RTS functions--------------------------------------------------------------*/
+EXPORT int lcrts(const imu_t *imu,const gsof_data_t *pos,const prcopt_t *popt,
+                 const solopt_t *solopt,int port,const char *file);
+EXPORT void set_fwd_soltmp_file(const char *file);
 
 /* virtual console functions--------------------------------------------------*/
 EXPORT vt_t *vt_open(int sock, const char *dev);

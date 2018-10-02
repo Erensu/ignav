@@ -33,7 +33,7 @@
 #define UNC_OA      (5.0*D2R)              /* default initial odometry misalignment uncertainty */
 #define UNC_CLK     (100.0)                /* default initial receiver clock uncertainty (m) */
 #define UNC_CLKR    (10.0)                 /* default initial receiver clock drift uncertainty (/s) */
-#define UNC_CMA     (30.0*D2R)             /* defalut initial misalignment from camera to imu body */
+#define UNC_CMA     (30.0*D2R)             /* default initial misalignment from camera to imu body */
 #define UNC_VMA     (30.0*D2R)             /* default initial misalignment from v-frame to b-frame */
 
 #define NMP         3                      /* number of position measurements for ins-gnss coupled */
@@ -71,6 +71,7 @@
 #define MAXDIFF         10.0               /* max time difference between solution */
 #define MAXVARDIS       (10.0)             /* max variance of disable estimated state */
 #define REBOOT          1                  /* ins loosely coupled reboot if always update fail */
+#define USE_MEAS_COV    0                  /* use measurement covariance {xx,yy,zz,xy,xz,yz} for update, not just {xx,yy,zz} */
 #define CHKNUMERIC      1                  /* check numeric for given value */
 #define NOINTERP        0                  /* no interpolate ins position/velocity when gnss measurement if need */
 #define COR_IN_ROV      0                  /* correction attitude in rotation vector,otherwise in euler angles */
@@ -253,6 +254,8 @@ extern void initlc(insopt_t *opt,insstate_t *ins)
     ins->x =mat(ins->nx,1); ins->P =mat(ins->nx,ins->nx);
     ins->xa=mat(ins->nx,1); ins->Pa=mat(ins->nx,ins->nx);
     ins->xb=mat(ins->nb,1); ins->Pb=mat(ins->nb,ins->nb);
+    ins->F =eye  (ins->nx);
+    ins->P0=zeros(ins->nx,ins->nx);
 
     ins->ptime=ins->ptct=ins->plct=t0;
     ins->dtrr=0.0;
@@ -665,6 +668,7 @@ static void jacobian_v_dla(const double *Cbe,const double *omgb,double *dvdla)
  *               double *re     I  position of body-frame
  *               double *vr     I  velocity of body-frame
  *               double *std    I  position/velocity std from gnss positioning
+ *               double *cov    I  position/velocity covariance matrix 
  *               double *v      O  measurement innovations
  *               double *R      O  measurement variance matrix
  *               double *H      O  sensitive-matrix about estimated states
@@ -673,10 +677,10 @@ static void jacobian_v_dla(const double *Cbe,const double *omgb,double *dvdla)
 static int build_HVR(const insopt_t *opt,const double *pos,const double *Cbe,
                      const double *lever,const double *omgb,const double *fib,
                      const double *meas,const double *re,const double *ve,
-                     const double *ae,const double *std,const double *P,double *H,
-                     double *v,double *R)
+                     const double *ae,const double *std,const double *cov,
+                     const double *P,double *H,double *v,double *R)
 {
-    int i,j,nm=0,nx=xnX(opt);
+    int i,j,nm=0,nx=xnX(opt),ind[NM];
     double r1[9],v1[9],v5[9],*I=eye(3),R_[NM]={0};
     double re_[3],ve_[3];
     double dt1[3],dt2[3],ds[9],drg[18],dla[9];
@@ -699,7 +703,7 @@ static int build_HVR(const insopt_t *opt,const double *pos,const double *Cbe,
     matmul("NN",3,3,3,1.0,r1p,S,0.0,r1);
 #endif
     for (i=IMP;i<IMP+NMP;i++) {
-        if (meas[i]!=0.0&&std[i]>0.0) {
+        if (meas[i]!=0.0) {
             if (fabs(v[nm]=(meas[i]-re_[i-IMP]))>=MAXINOP) {
                 trace(2,"too large innovations for position\n");
             }
@@ -710,7 +714,7 @@ static int build_HVR(const insopt_t *opt,const double *pos,const double *Cbe,
                 for (j=ila;j<ila+nla;j++) H[j+nm*nx]=-Cbe[i-IMP+(j-ila)*3];
             }
             R_[nm]=std[i]==0.0?SQR(STD_POS):SQR(std[i]);
-            nm++; 
+            ind[nm++]=i;
         }
     }
     /* for velocity measurement */
@@ -729,7 +733,7 @@ static int build_HVR(const insopt_t *opt,const double *pos,const double *Cbe,
     matmul("NN",3,3,3,1.0,r1p,S,0.0,v1);
 #endif
     for (i=IMV;i<IMV+NMV;i++) {
-        if (meas[i]!=0.0&&std[i]>0.0) {
+        if (meas[i]!=0.0) {
             if (fabs(v[nm]=(meas[i]-ve_[i-IMV]))>=MAXINOV) {
                 trace(2,"too large innovations for velocity\n");
             }
@@ -743,13 +747,20 @@ static int build_HVR(const insopt_t *opt,const double *pos,const double *Cbe,
                 for (j=ila;j<ila+nla;j++) H[j+nm*nx]=dla[i-IMV+(j-ila)*3];
             }
             R_[nm]=std[i]==0.0?SQR(STD_VEL):SQR(std[i]);
-            nm++;
+            ind[nm++]=i;
         }
     }
     if (nm&&R) {
-        for (i=0;i<nm;i++) R[i+i*nm]=R_[i];
+        if (cov) {
+            for (i=0;i<nm;i++) for (j=0;j<nm;j++) {
+                R[i+nm*j]=cov[ind[i]+NM*ind[j]];
+            }
+        }
+        else {
+            for (i=0;i<nm;i++) R[i+i*nm]=R_[i];
+        }
         trace(3,"R=\n");
-        tracemat(5,R,nm,nm,15,8);
+        tracemat_std(5,R,nm,nm,15,8);
     }
     if (nm&&H) {
         trace(3,"H=\n");
@@ -883,7 +894,7 @@ extern void getaccl(const double *fib,const double *Cbe,const double *re,
     }
 }
 /* close-loop for states ----------------------------------------------------*/
-static void lcclp(double *x,double *Cbe,double *re,double *ve,double *fib,
+extern void lcclp(double *x,double *Cbe,double *re,double *ve,double *fib,
                   double *omgb,double *Gg, double *rec,double *vec,double *aec,
                   double *bac, double *bgc,double *Mac,double *Mgc,
                   double *leverc,double *Cbec,double *fibc,double *omgbc,
@@ -951,10 +962,12 @@ static void lcclp(double *x,double *Cbe,double *re,double *ve,double *fib,
         leverc[2]+=x[ila+2];
     }
     /* correction imu accl and gyro measurements */
-    ins_errmodel2(fib,omgb,Mac,Mgc,bac,bgc,Gg,fibc,omgbc);
+    if (fib&&omgb&&fibc&&omgbc&&Gg) {
+        ins_errmodel2(fib,omgb,Mac,Mgc,bac,bgc,Gg,fibc,omgbc);
 
-    /* correction imu-body accelerometer */
-    getaccl(fibc,Cbec,rec,vec,aec);
+        /* correction imu-body accelerometer */
+        getaccl(fibc,Cbec,rec,vec,aec);
+    }
     free(I);
 }
 /* loosely-coupled INS/GNSS integration--------------------------------------
@@ -963,6 +976,7 @@ static void lcclp(double *x,double *Cbe,double *re,double *ve,double *fib,
  *         insstate_t *ins   IO ins states from measurements updates
  *         double *meas      I  measurements from gnss positioning
  *         double *std       I  measurements std from gnss positioning
+ *         double *cov       I  measurements covariance matrix
  *         double dt         I  time difference of gnss and IMU measurement data
  *                              (dt=t_gnss-t_imu)
  *         double *x0        I  propagate state estimates
@@ -972,11 +986,12 @@ static void lcclp(double *x,double *Cbe,double *re,double *ve,double *fib,
  *         if std [i] is 0.0,then means no measurements to update
  * --------------------------------------------------------------------------*/
 static int lcfilt(const insopt_t *opt, insstate_t *ins, const double *meas,
-                  const double *std, const double dt, double *x, double *P)
+                  const double *std, const double *cov,const double dt,
+                  double *x, double *P)
 {
     int nm,info=0,stat,nx=ins->nx,i;
     double *H,*v,*R;
-    double re[3],ve[3],ae[3],Cbe[9],fib[3],omgb[3];
+    double re[3],ve[3],ae[3],Cbe[9],fib[3],omgb[3],stde[NM]={0};
     
     /* close-loop correction states */
     double rec[3],vec[3],aec[3],Cbec[9],fibc[3],omgbc[3],
@@ -995,13 +1010,19 @@ static int lcfilt(const insopt_t *opt, insstate_t *ins, const double *meas,
     prepara(ins,fib,omgb,Mgc,Mac,Gg,bac,bgc,leverc);
 
     /* build H,v and R matrix from input measurements */
-    H=zeros(NM,nx); v=zeros(NM,1); R=zeros(NM,NM);
+    H=zeros(NM,nx); v=zeros(NM,1);
+    R=zeros(NM,NM);
 
     if ((nm=build_HVR(opt,NULL,Cbe,leverc,omgb,fib,meas,
-                      re,ve,ae,std,P,H,v,R))) {
-
+                      re,ve,ae,std,cov,P,H,v,R))) {
+        if (cov) {
+            for (i=0;i<NM;i++) stde[i]=cov[i+i*NM];
+        }
+        else {
+            matcpy(stde,std,1,NM);
+        }
         /* disable gyro/accl/att state if measurement is bad */
-        if (norm(std,6)>=MAXVARDIS) {
+        if (norm(stde,NM)>=MAXVARDIS) {
             for (i=IA ;i<IA+NA  ;i++) unusex(opt,i,ins,x);
             for (i=iba;i<iba+nba;i++) unusex(opt,i,ins,x);
             for (i=ibg;i<ibg+nbg;i++) unusex(opt,i,ins,x);
@@ -1024,7 +1045,7 @@ static int lcfilt(const insopt_t *opt, insstate_t *ins, const double *meas,
 
     /* post-fit residuals for ins-gnss coupled */
     if ((nm=build_HVR(opt,NULL,Cbec,leverc,omgbc,fibc,meas,
-                      rec,vec,aec,std,P,H,v,R))) {
+                      rec,vec,aec,std,cov,P,H,v,R))) {
 
         /* validation of solutions */
         if ((stat=valsol(x,P,R,v,nm,10.0))) {
@@ -1053,22 +1074,24 @@ static void precPhi(const insopt_t *opt,double dt,const double *Cbe,
 
     /* third-order approx */
     for (i=0;i<nx*nx;i++) F[i]*=dt;
-
+#if 0
     matmul("NN",nx,nx,nx,1.0,F,F,0.0,FF);
     matmul33("NNN",F,F,F,nx,nx,nx,nx,FFF);
 
     for (i=0;i<nx*nx;i++) {
         Phi[i]=I[i]+F[i]+0.5*FF[i]+1.0/6.0*FFF[i];
     }
+#else
+    expmat(F,nx,Phi);
+#endif
     free(F); free(FF);
     free(FFF); free(I);
 }
 /* updates phi,P,Q of ekf----------------------------------------------------*/
-static void updstat(const insopt_t *opt,const insstate_t *ins,const double dt,
+static void updstat(const insopt_t *opt,insstate_t *ins,const double dt,
                     const double *x0,const double *P0,double *phi,double *P,
                     double *x,double *Q)
 {
-
     /* determine approximate system noise covariance matrix */
     opt->exprn?getprn(ins,opt,dt,Q):
                getQ(opt,dt,Q);
@@ -1091,16 +1114,20 @@ static void updstat(const insopt_t *opt,const insstate_t *ins,const double dt,
     /* propagate state estimates noting that
      * all states are zero due to close-loop correction */
     if (x) propx(opt,x0,x);
+
+    /* predict info. */
+    if (ins->P0) matcpy(ins->P0,P  ,ins->nx,ins->nx);
+    if (ins->F ) matcpy(ins->F ,phi,ins->nx,ins->nx);
 }
 /* propagate ins states and its covariance matrix----------------------------
- * args  : insstate_t *ins  I  ins states
- *         insopt_t *opt    I  ins options
- *         double dt        I  time difference between current and precious
- *         double *x        O  updates ins states
- *         double *P        O  upadtes ins states covariance matrix
+ * args  : insstate_t *ins  IO  ins states
+ *         insopt_t *opt    I   ins options
+ *         double dt        I   time difference between current and precious
+ *         double *x        O   updates ins states
+ *         double *P        O   upadtes ins states covariance matrix
  * return : none
  * --------------------------------------------------------------------------*/
-extern void propinss(const insstate_t *ins,const insopt_t *opt,double dt,
+extern void propinss(insstate_t *ins,const insopt_t *opt,double dt,
                      double *x,double *P)
 {
     int nx=ins->nx; double *phi,*Q;
@@ -1356,10 +1383,13 @@ extern int lcigpos(const insopt_t *opt, const imud_t *data, insstate_t *ins,
                    gmea_t *gnss, int upd)
 {
     int stat=1,i,nx=ins->nx,flag;
-    double *phi=NULL,*Q=NULL,*P=NULL,*x=NULL;
-    double meas[6]={0},std[6]={0};
+    double *phi,*Q,*P,*x,*pcov;
+    double meas[NM],std[NM],cov[NM*NM]={0};
 
     trace(3,"lcigpos: upd=%d,time=%s\n",upd,time_str(data->time,4));
+
+    /* backup current ins state for RTS */
+    bckup_ins_info(ins,opt,2);
 
 #if CHKNUMERIC
     /* check numeric of estimate state */
@@ -1371,20 +1401,24 @@ extern int lcigpos(const insopt_t *opt, const imud_t *data, insstate_t *ins,
         }
     }
 #endif
-    ins->stat=INSS_NONE;
-    if (opt->soltype==0?!updateins(opt,ins,data):!updateinsb(opt,ins,data)) {
-        trace(2,"ins mechanization updates fail\n");
-        return 0;
-    }
-    /* only ins mechanization */
-    if (upd==INSUPD_INSS) return stat;
-
-    P=mat(nx,nx); x=mat(nx,1);
+    P=mat(nx,nx); x  =mat(nx,1 );
     Q=mat(nx,nx); phi=mat(nx,nx);
 
     updstat(opt,ins,ins->dt,ins->x,ins->P,phi,P,x,Q);
     matcpy(ins->x,x,nx, 1);
     matcpy(ins->P,P,nx,nx);
+
+    /* ins mechanization update */
+    ins->stat=INSS_NONE;
+    if ((opt->soltype==0||opt->soltype==3)?!updateins(opt,ins,data):!updateinsb(opt,ins,data)) {
+        trace(2,"ins mechanization updates fail\n");
+        return 0;
+    }
+    /* backup predict ins state for RTS */
+    bckup_ins_info(ins,opt,1);
+
+    /* only ins mechanization */
+    if (upd==INSUPD_INSS) return stat;
 
 #if REBOOT
     /* reboot ins loosely coupled if need */
@@ -1409,16 +1443,24 @@ extern int lcigpos(const insopt_t *opt, const imud_t *data, insstate_t *ins,
         for (i=0;i<3;i++) {
             meas[i+0]=gnss->pe[i]; meas[i+3]=gnss->ve[i];
         }
-        matcpy(std,gnss->std,1,NM);
+#if USE_MEAS_COV
+        asi_blk_mat(cov,NM,NM,gnss->covp,3,3,0,0);
+        asi_blk_mat(cov,NM,NM,gnss->covv,3,3,3,3);
+        pcov=cov;
 
+        tracemat_std(3,gnss->covp,3,3,12,6);
+
+#else
+        matcpy(std,gnss->std,1,NM);
+        pcov=NULL;
+#endif
         /* determine estimated and covariance matrix */
         if (opt->updint==UPDINT_GNSS) {
             updstat(opt,ins,timediff(gnss->t,ins->plct),ins->xa,ins->Pa,
                     phi,P,x,Q);
         }
         /* ins-gnss loosely coupled */
-        if ((stat=lcfilt(opt,ins,meas,std,
-                         timediff(gnss->t,ins->time),
+        if ((stat=lcfilt(opt,ins,meas,std,pcov,timediff(gnss->t,ins->time),
                          x,P))) {
 
             /* propagate by gps epoch time internal */

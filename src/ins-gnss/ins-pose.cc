@@ -69,6 +69,7 @@ extern void expmat(const double *A,int n,double *E)
         }
         matcpy(B,C,n,n);
     }
+    free(B); free(C);
 }
 /* roll-pitch-yaw convention from 1-frame to 2-frame-------------------------
  * args:  double *rpy  I  roll,pitch,yaw {rad}

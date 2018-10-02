@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-* preceph.c : precise ephemeris and clock functions
+* preceph.cc : precise ephemeris and clock functions
 *
 * references :
 *     [1] S.Hilla, The Extended Standard Product 3 Orbit Format (SP3-c),

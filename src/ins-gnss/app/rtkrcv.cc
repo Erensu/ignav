@@ -96,7 +96,8 @@ static int strtype[]={                  /* stream types */
 };
 static char strpath[14][MAXSTR]={"","","","","","","","","","","","","",""}; /* stream paths */
 static int strfmt[]={                   /* stream formats */
-    STRFMT_UBX,STRFMT_RTCM3,STRFMT_SP3,STRFMT_UBXM8,STRFMT_UBXSOL,SOLF_LLH,SOLF_NMEA
+    STRFMT_UBX,STRFMT_RTCM3,STRFMT_SP3,STRFMT_UBXM8,STRFMT_UBXSOL,SOLF_LLH,SOLF_NMEA,
+    SOLF_LLH,SOLF_LLH
 };
 static int svrcycle     =10;            /* server cycle (ms) */
 static int timeout      =10000;         /* timeout time (ms) */

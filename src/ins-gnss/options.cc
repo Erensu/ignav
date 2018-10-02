@@ -40,7 +40,7 @@ static char snrmask_[NFREQ][1024];
 #define SWTOPT  "0:off,1:on"
 #define MODOPT  "0:single,1:dgps,2:kinematic,3:static,4:movingbase,5:fixed,6:ppp-kine,7:ppp-static,8:ppp-fixed,9:ins-update,10:ins-loosely-coupled,11:ins-tightly-coupled,12:ins-vo-loosely-coupled,13:vo"
 #define FRQOPT  "1:l1,2:l1+l2,3:l1+l2+l5,4:l1+l5"
-#define TYPOPT  "0:forward,1:backward,2:combined"
+#define TYPOPT  "0:forward,1:backward,2:combined,3:RTS"
 #define IONOPT  "0:off,1:brdc,2:sbas,3:dual-freq,4:est-stec,5:ionex-tec,6:qzs-brdc,7:qzs-lex,8:stec"
 #define TRPOPT  "0:off,1:saas,2:sbas,3:est-ztd,4:est-ztdgrad,5:ztd"
 #define EPHOPT  "0:brdc,1:precise,2:brdc+sbas,3:brdc+ssrapc,4:brdc+ssrcom"

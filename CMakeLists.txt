@@ -31,5 +31,8 @@ SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY
 ADD_EXECUTABLE(navapp src/ins-gnss/app/rtkrcv.cc)
 TARGET_LINK_LIBRARIES(navapp navlib pthread)
 
+ADD_EXECUTABLE(lc-rts src/ins-gnss/app/lc-rts.cc)
+TARGET_LINK_LIBRARIES(lc-rts navlib pthread)
+
 
 

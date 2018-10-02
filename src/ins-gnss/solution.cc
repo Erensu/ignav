@@ -2224,7 +2224,7 @@ extern int outsols(unsigned char *buff, const sol_t *sol, const double *rb,
 vosols:
     timeu=opt->timeu<0?0:(opt->timeu>20?20:opt->timeu);
     
-    time=opt->posf==SOLF_INS?ins->time:sol->time;
+    time=sol->time;
     
     if (opt->times>=TIMES_UTC) time=gpst2utc(time);
     if (opt->times==TIMES_JST) time=timeadd(time,9*3600.0);

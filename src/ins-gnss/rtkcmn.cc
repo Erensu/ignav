@@ -878,6 +878,16 @@ extern double *mat(int n, int m)
     }
     return p;
 }
+extern float *fmat(int n,int m)
+{
+    float *p;
+
+    if (n<=0||m<=0) return NULL;
+    if (!(p=(float *)malloc(sizeof(float)*n*m))) {
+        fatalerr("matrix memory allocation error: n=%d,m=%d\n",n,m);
+    }
+    return p;
+}
 /* new integer matrix ----------------------------------------------------------
 * allocate memory of integer matrix 
 * args   : int    n,m       I   number of rows and columns of matrix
@@ -1067,6 +1077,20 @@ extern double *zeros(int n, int m)
 #endif
     return p;
 }
+extern float *fzeros(int n, int m)
+{
+    float *p;
+
+#if NOCALLOC
+    if ((p=mat(n,m))) for (n=n*m-1;n>=0;n--) p[n]=0.0;
+#else
+    if (n<=0||m<=0) return NULL;
+    if (!(p=(float *)calloc(sizeof(float),n*m))) {
+        fatalerr("matrix memory allocation error: n=%d,m=%d\n",n,m);
+    }
+#endif
+    return p;
+}
 /* identity matrix -------------------------------------------------------------
 * generate new identity matrix
 * args   : int    n         I   number of rows and columns of matrix
@@ -1078,6 +1102,14 @@ extern double *eye(int n)
     int i;
     
     if ((p=zeros(n,n))) for (i=0;i<n;i++) p[i+i*n]=1.0;
+    return p;
+}
+extern float *feye(int n)
+{
+    float *p;
+    int i;
+
+    if ((p=fzeros(n,n))) for (i=0;i<n;i++) p[i+i*n]=1.0;
     return p;
 }
 /* inner product ---------------------------------------------------------------
@@ -1149,6 +1181,20 @@ extern int normv3(const double *a, double *b)
 extern void matcpy(double *A, const double *B, int n, int m)
 {
     memcpy(A,B,sizeof(double)*n*m);
+}
+extern void fmatcpy(float *A, const float *B, int n, int m)
+{
+    memcpy(A,B,sizeof(float)*n*m);
+}
+extern void matcpy_d2f(float *A, const double *B, int n, int m)
+{
+    int i,j;
+    for (i=0;i<n;i++) for (j=0;j<m;j++) A[i+j*n]=(float)B[i+j*n];
+}
+extern void matcpy_f2d(double *A, const float *B, int n, int m)
+{
+    int i,j;
+    for (i=0;i<n;i++) for (j=0;j<m;j++) A[i+j*n]=(double)B[i+j*n];
 }
 /* copy matrix -----------------------------------------------------------------
 * copy matrix
@@ -1661,6 +1707,26 @@ extern void quadsmooth5(double *in, double *out, int N)
         out[N-1]=(31.0*in[N-1]+9.0*in[N-2]-3.0*in[N-3]-
                    5.0*in[N-4]+3.0*in[N-5])/35.0;
     }
+}
+/* matrix pow------------------------------------------------------------------
+ * args  : double *A I   matrix A (n x n)
+ *         int m     I   number of rows and columns of A
+ *         int p     I   number of power
+ *         double *B O   pow(A,p)
+ * return: none
+ * ---------------------------------------------------------------------------*/
+extern void matpow(const double *A,int m,int p,double *B)
+{
+    double *T;
+    int i;
+    if (p<=0) {seteye(B,m); return;}
+
+    T=mat(m,m); matcpy(B,A,m,m);
+    for (i=1;i<p;i++) {
+        matmul("NN",m,m,m,1.0,B,A,0.0,T);
+        matcpy(B,T,m,m);
+    }
+    free(T);
 }
 /* print matrix ----------------------------------------------------------------
 * print matrix to stdout
@@ -3510,6 +3576,12 @@ extern void tracemat(int level, const double *A, int n, int m, int p, int q)
 #if VIG_TRACE_MAT
     if (!fp_trace) return;
     matfprint(A,n,m,p,q,fp_trace); fflush(fp_trace);
+#endif
+}
+extern void tracemat_std(int level, const double *A, int n, int m, int p, int q)
+{
+#if VIG_TRACE_MAT
+    matfprint(A,n,m,p,q,stderr); fflush(stderr);
 #endif
 }
 extern void traceimat(const int *A,int n,int m,int p,int q)
