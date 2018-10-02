@@ -760,7 +760,7 @@ static int build_HVR(const insopt_t *opt,const double *pos,const double *Cbe,
             for (i=0;i<nm;i++) R[i+i*nm]=R_[i];
         }
         trace(3,"R=\n");
-        tracemat_std(5,R,nm,nm,15,8);
+        tracemat(5,R,nm,nm,15,8);
     }
     if (nm&&H) {
         trace(3,"H=\n");
