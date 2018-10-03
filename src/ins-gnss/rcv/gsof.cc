@@ -434,6 +434,15 @@ extern int readgsoff(const char *file,gsof_data_t *gsof)
     fclose(fp);
     return gsof->n>0;
 }
+/* free gsof measurement data------------------------------------------------*/
+extern void freegsofdata(gsof_data_t *data)
+{
+    trace(3,"freegsofdata:\n");
+    if (data->data) {
+        free(data->data); data->data=NULL; data->n=data->nmax=0;
+    }
+}
+
 
 
 

@@ -408,6 +408,7 @@ static void free_insol(ins_sol_t *sol)
 static void torts(ins_sol_t *sol,const insstate_t *ins,const insopt_t *opt,
                   int type)
 {
+    if (sol->Pc==NULL||sol->Pp==NULL) return;
     if (type==1) { /* updated/predicted ins state */
         matcpy(sol->pCbe,ins->Cbe,3,3);
         matcpy(sol->pre ,ins->re ,3,1);
@@ -590,6 +591,7 @@ static int fwdfilt(const imu_t *imu,const gsof_data_t *pos,const prcopt_t *popt,
     fclose(fp_fwd_sol); fp_fwd_sol=NULL;
 #endif
     free_insol(&insol);
+    free(imuz);
     return insbuf.n>1;
 }
 /* get error correction of smoothed state------------------------------------*/
@@ -891,7 +893,6 @@ extern int lcrts(const imu_t *imu,const gsof_data_t *pos,const prcopt_t *popt,
     if (fwdfilt(imu,pos,popt,solopt,&rtk)) bwdsmh(&rtk,popt,solopt);
     if (!(n=insbuf.n)) {
         trace(2,"rts solution fail\n");
-        return 0;
     }
     free_fbsol(&insbuf);
     rtkfree(&rtk);

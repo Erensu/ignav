@@ -34,5 +34,8 @@ TARGET_LINK_LIBRARIES(navapp navlib pthread)
 ADD_EXECUTABLE(lc-rts src/ins-gnss/app/lc-rts.cc)
 TARGET_LINK_LIBRARIES(lc-rts navlib pthread)
 
+ADD_EXECUTABLE(lc-fbsm src/ins-gnss/app/lc-fbsm.cc)
+TARGET_LINK_LIBRARIES(lc-fbsm navlib pthread)
+
 
 

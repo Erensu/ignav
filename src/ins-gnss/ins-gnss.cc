@@ -70,7 +70,7 @@
 #define MAXSOLS         5                  /* max number of solutions for reboot lc  */
 #define MAXDIFF         10.0               /* max time difference between solution */
 #define MAXVARDIS       (10.0)             /* max variance of disable estimated state */
-#define REBOOT          0                  /* ins loosely coupled reboot if always update fail */
+#define REBOOT          1                  /* ins loosely coupled reboot if always update fail */
 #define USE_MEAS_COV    0                  /* use measurement covariance {xx,yy,zz,xy,xz,yz} for update, not just {xx,yy,zz} */
 #define CHKNUMERIC      1                  /* check numeric for given value */
 #define NOINTERP        0                  /* no interpolate ins position/velocity when gnss measurement if need */
@@ -145,7 +145,6 @@ static void getGn(const insopt_t *opt,const insstate_t *ins,const double dt,
 
     opt->baopt==INS_BAEST?asi_blk_mat(Gn,nx,nprn,I,3,3,9 ,6):none();
     opt->bgopt==INS_BGEST?asi_blk_mat(Gn,nx,nprn,I,3,3,12,9):none();
-
     free(I);
 }
 /* process noise covariance matrix-------------------------------------------*/

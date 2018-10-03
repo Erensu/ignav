@@ -589,6 +589,8 @@ extern "C"{
 #define INSS_POSE      15               /* ins updates status: pose measurement fusion */
 #define INSS_MAGH      16               /* ins updates status: magnetic heading auxiliary */
 #define INSS_RTS       17               /* ins updates status: RTS smoother */
+#define INSS_DEGRADE   18               /* ins updates status: degrade solution in forward/backward combined */
+#define INSS_FBCOMB    19               /* ins updates status: forward/backward combined solution */
 
 #define UPDINT_IMU     1                /* ins updates states time internal by imu data in ins-gnss coupled */
 #define UPDINT_GNSS    2                /* ins updates states time internal by gnss data in ins-gnss coupled */
@@ -2425,6 +2427,7 @@ EXPORT int  readblq(const char *file, const char *sta, double *odisp);
 EXPORT int  readerp(const char *file, erp_t *erp);
 EXPORT int  geterp (const erp_t *erp, gtime_t time, double *val);
 EXPORT void freeimudata(imu_t *imu);
+EXPORT void freegsofdata(gsof_data_t *data);
 EXPORT void corr_phase_bias_ssr(obsd_t *obs, int n, const nav_t *nav);
 EXPORT void corr_phase_bias_fcb(obsd_t *obs, int n, const nav_t *nav);
 /* debug trace functions -----------------------------------------------------*/
@@ -3111,7 +3114,10 @@ EXPORT int posefusion(const insopt_t *opt,const pose_meas_t *data,
 /* RTS functions--------------------------------------------------------------*/
 EXPORT int lcrts(const imu_t *imu,const gsof_data_t *pos,const prcopt_t *popt,
                  const solopt_t *solopt,int port,const char *file);
+EXPORT int lcfbsm(const imu_t *imu,const gsof_data_t *pos,const prcopt_t *popt,
+                  const solopt_t *solopt,int port,const char *file);
 EXPORT void set_fwd_soltmp_file(const char *file);
+EXPORT void set_fwdtmp_file(const char *file);
 
 /* virtual console functions--------------------------------------------------*/
 EXPORT vt_t *vt_open(int sock, const char *dev);

@@ -1500,12 +1500,6 @@ static void freeobsnav(obs_t *obs, nav_t *nav)
     free(nav->geph); nav->geph=NULL; nav->ng=nav->ngmax=0;
     free(nav->seph); nav->seph=NULL; nav->ns=nav->nsmax=0;
 }
-/* free gsof measurement data-------------------------------------------------*/
-static void freegsofdata(gsof_data_t *gsof)
-{
-    trace(3,"freegsofdata:\n");
-    if (gsof->data) free(gsof->data); gsof->data=NULL; gsof->n=gsof->nmax=0;
-}
 /* average of single position ------------------------------------------------*/
 static int avepos(double *ra, int rcv, const obs_t *obs, const nav_t *nav,
                   const prcopt_t *opt)

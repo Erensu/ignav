@@ -167,5 +167,8 @@ int main(int argc, char **argv)
 
     /* RTS */
     lcrts(&imu,&pos,&prcopt,&solopt,port,strpath[7]);
+
+    freegsofdata(&pos);
+    freeimudata(&imu);
     return 0;
 }
