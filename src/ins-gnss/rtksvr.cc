@@ -1486,8 +1486,7 @@ static void *rtksvrthread(void *arg)
                     /* initial ins states from dual antennas */
                     if (inputpose(svr,imus.data[i].time,&pose)
                         &&j==INSUPD_MEAS) {
-                        flag=insinitdualant(svr,&pose,&psol,
-                                            &imus.data[i]);
+                        flag=insinitdualant(svr,&pose,&psol,&imus.data[i]);
                     }
                 }
                 else {
