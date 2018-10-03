@@ -646,7 +646,7 @@ static int combres(insstate_t *ins,const insopt_t *opt,insstate_t *inss)
           inss->lever,inss->Cbe,inss->fb,inss->omgb,opt);
 
     matcpy(inss->P,Ps,nx,nx);
-    inss->stat=INSS_FBCOMB;
+    if (ins->stat!=INSS_DEGRADE) inss->stat=INSS_FBCOMB;
 
     free(dx); free(Ps); free(Pf);
     free(Pb); free(dxs);
