@@ -554,6 +554,13 @@ extern "C"{
 #define STR_MODE_W  0x2                 /* stream mode: write */
 #define STR_MODE_RW 0x3                 /* stream mode: read/write */
 
+#define GEOID_EMBEDDED    0             /* geoid model: embedded geoid */
+#define GEOID_EGM96_M150  1             /* geoid model: EGM96 15x15" */
+#define GEOID_EGM2008_M25 2             /* geoid model: EGM2008 2.5x2.5" */
+#define GEOID_EGM2008_M10 3             /* geoid model: EGM2008 1.0x1.0" */
+#define GEOID_GSI2000_M15 4             /* geoid model: GSI geoid 2000 1.0x1.5" */
+#define GEOID_RAF09       5             /* geoid model: IGN RAF09 for France 1.5"x2" */
+
 #define COMMENTH    "%"                 /* comment line indicator for solution */
 #define MSG_DISCONN "$_DISCONNECT\r\n"  /* disconnect message */
 
@@ -2400,6 +2407,11 @@ EXPORT int reppath(const char *path, char *rpath, gtime_t time, const char *rov,
                    const char *base);
 EXPORT int reppaths(const char *path, char *rpaths[], int nmax, gtime_t ts,
                     gtime_t te, const char *rov, const char *base);
+
+/* geiod models --------------------------------------------------------------*/
+EXPORT int opengeoid(int model, const char *file);
+EXPORT void closegeoid(void);
+EXPORT double geoidh(const double *pos);
 
 /* coordinates transformation ------------------------------------------------*/
 EXPORT void ecef2pos(const double *r, double *pos);
