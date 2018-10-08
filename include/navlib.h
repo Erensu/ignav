@@ -907,7 +907,7 @@ typedef struct {            /* ins states type */
     double dtrr;            /* receiver clock‐drift (m/s) */
 
     double rn[3],vn[3],an[3];/* position/velocity/acceleration (n-frame) */
-    double Cbn[9];           /* transform matrix of b-frame to n-frame */
+    double Cbn[9],dvn[3];    /* transform matrix of b-frame to n-frame/velocity increment at the precious epoch */
 
     double ba[3],bg[3];     /* accelemeter-bias and gyro-bias */
     double Ma[9];           /* non-orthogonal between sensor axes and body frame for accelerometers
@@ -917,15 +917,12 @@ typedef struct {            /* ins states type */
                              * */
     double Mg[9];           /* non-orthogonal between sensor axes and body frame for gyroscopes */
     double Gg[9];           /* g-dependent bias for a gyro triad */
-    double fb0[3];          /* uncorrected specific-force (b-frame) */
-    double omgb0[3];        /* uncorrected angular rate (b-frame) */
-    double fb[3];           /* corrected specific-force (b-frame) */
-    double omgb[3];         /* corrected angular rate (b-frame) */
+    double fb0[3],omgb0[3]; /* uncorrected specific-force (b-frame)/angular rate (b-frame) */
+    double fb[3],omgb[3];   /* corrected specific-force (b-frame)/angular rate (b-frame) */
 
-    double fbp[3];          /* precious epoch corrected specific-force (b-frame) */
-    double omgbp[3];        /* precious epoch corrected angular rate (b-frame) */
+    double fbp[3],omgbp[3]; /* precious epoch corrected specific-force (b-frame)/angular rate (b-frame) */
     double lever[3];        /* lever arm for body to ant. (m) */
-    double lbc[3];          /* lever arm for body to camera */
+    double lbc[3];          /* lever arm for body to camera (for additional)*/
 
     double Cbr[9];          /* transform matrix from odometry rear frame to body frame */
     double os;              /* odometry scale factor */
@@ -934,7 +931,7 @@ typedef struct {            /* ins states type */
 
     double Cvb[9],len;      /* misalignment from v-frame to b-frame (defined at dual ant.) and length of dual ant. */
 
-    double dopv[3];         /* doppler velocity (ecef) */
+    double dopv[3];         /* doppler velocity (ecef, m/s) */
 
     int nx,nb;              /* numbers of estimated states/fixed states (except phase bias) */
 
@@ -943,12 +940,10 @@ typedef struct {            /* ins states type */
     double *xb,*Pb;         /* fixed states and covariance (except phase bias) */
     double *P0,*F;          /* predict error states correction and its covariance matrix/transmit matrix */
 
-    double pins[9];         /* ins states (position/velocity/acceleration) of precious epoch in ecef-frame */
-    double pCbe[9];         /* ins states (attitude) of precious epoch */
+    double pins[9],pCbe[9]; /* ins states (position/velocity/acceleration/attitude) of precious epoch in ecef-frame */
     gmeas_t gmeas;          /* gps position/velocity measurements */
 
-    double age;             /* age of differential of ins and gnss (s) */
-    double ratio;           /* ambiguity fix ratio */
+    double age,ratio;       /* age of differential of ins and gnss (s)/ambiguity fix ratio */
     int stat,gstat,pose;    /* ins updates stat,gnss updates status and pose fusion status */
     int ns;                 /* numbers valid satellite for loosely coupled */
     void *rtkp;             /* pointer rtk struct data */
@@ -2891,6 +2886,7 @@ EXPORT void initins(insstate_t *ins, const double *re, double angh,
 EXPORT int updateins(const insopt_t *insopt,insstate_t *ins, const imud_t *data);
 EXPORT int updateinsbe(const insopt_t *insopt,insstate_t *ins,const imud_t *data);
 EXPORT int updateinsbn(const insopt_t *insopt,insstate_t *ins,const imud_t *data);
+EXPORT int updateinsn(const insopt_t *insopt,insstate_t *ins,const imud_t *data);
 EXPORT int updateinsb(const insopt_t *insopt,insstate_t *ins,const imud_t *data);
 EXPORT void correctatt(const double *dphi,const double *C,double *Cc);
 
@@ -2908,6 +2904,7 @@ EXPORT void rv2quat(const double *rv,double *q);
 EXPORT void rot2dcm(const double *rot,double *dcm);
 EXPORT void quat2dcmx(const double *qba, double *Cba);
 EXPORT void dcm2quatx(const double *dcm, double* quat);
+EXPORT void quatmulx(const double *qab,const double *qca,double *qcb);
 
 EXPORT void normdcm(double *C);
 EXPORT void quatupd(const double *vi,quat_t *qo);
@@ -2990,6 +2987,8 @@ EXPORT void ins2sol(insstate_t *ins,const insopt_t *opt,sol_t *sol);
 EXPORT void rvec2quat(const double *rvec,double *q);
 EXPORT void dcm2rot(const double *C,double *rv);
 EXPORT void getvn(const insstate_t *ins,double *vn);
+EXPORT void update_ins_state_n(insstate_t *ins);
+EXPORT void update_ins_state_e(insstate_t *ins);
 EXPORT int insinitdualant(rtksvr_t *svr,const pose_meas_t *pose,const sol_t *sol,
                           const imud_t *imu);
 EXPORT int calibdualant(const insopt_t *opt,const solbuf_t *solbuf,
@@ -3005,8 +3004,6 @@ EXPORT void lcclp(double *x,double *Cbe,double *re,double *ve,double *fib,
                   double *bac, double *bgc,double *Mac,double *Mgc,
                   double *leverc,double *Cbec,double *fibc,double *omgbc,
                   const insopt_t *opt);
-
-EXPORT int bckup_ins_info(insstate_t *ins,const insopt_t *opt,int type);
 
 /* motion constraint---------------------------------------------------------*/
 EXPORT int nhc(insstate_t *ins,const insopt_t *opt,const imud_t *imu);
@@ -3130,6 +3127,7 @@ EXPORT int lcfbsm(const imu_t *imu,const gsof_data_t *pos,const prcopt_t *popt,
                   const solopt_t *solopt,int port,const char *file);
 EXPORT void set_fwd_soltmp_file(const char *file);
 EXPORT void set_fwdtmp_file(const char *file);
+EXPORT int bckup_ins_info(insstate_t *ins,const insopt_t *opt,int type);
 
 /* virtual console functions--------------------------------------------------*/
 EXPORT vt_t *vt_open(int sock, const char *dev);

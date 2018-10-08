@@ -64,7 +64,7 @@ static void updateatt(double dt, double *Cbe, const double *omgb)
 *----------------------------------------------------------------------------*/
 extern int updateinsbe(const insopt_t *insopt,insstate_t *ins,const imud_t *data)
 {
-    double t,Cbe[9],fe[3],ge[3],cori[3],Cbb[9]={1,0,0,0,1,0,0,0,1};
+    double dt,Cbe[9],fe[3],ge[3],cori[3],Cbb[9]={1,0,0,0,1,0,0,0,1};
     double Ca[9],Ca2[9],a1,a2,a,alpha[3]={0},Omg[9]={0},ae[3]={0};
     int i;
 
@@ -72,8 +72,8 @@ extern int updateinsbe(const insopt_t *insopt,insstate_t *ins,const imud_t *data
 
     trace(5,"ins(-)=\n"); traceins(5,ins);
 
-    if ((t=-timediff(data->time,ins->time))>MAXDT||fabs(t)<1E-6) {
-        trace(2,"time difference too large: %.0fs\n",t);
+    if ((dt=-timediff(data->time,ins->time))>MAXDT||fabs(dt)<1E-6) {
+        trace(2,"time difference too large: %.0fs\n",dt);
         return 0;
     }
     for (i=0;i<3;i++) {
@@ -87,7 +87,7 @@ extern int updateinsbe(const insopt_t *insopt,insstate_t *ins,const imud_t *data
             ins->fb[i]  =data->accl[i]-ins->ba[i];
         }
     }
-    ae[2]=OMGE*t;
+    ae[2]=OMGE*dt;
 
     /* save precious ins states */
     matcpy(ins->pins,  ins->re,1,3);
@@ -98,10 +98,10 @@ extern int updateinsbe(const insopt_t *insopt,insstate_t *ins,const imud_t *data
 
     /* save ins attitude of precious time */
     matcpy(ins->pCbe,Cbe,3,3);
-    updateatt(t,ins->Cbe,ins->omgb);
+    updateatt(dt,ins->Cbe,ins->omgb);
 
 #if INSUPDPRE
-    for (i=0;i<3;i++) alpha[i]=ins->omgb[i]*t;
+    for (i=0;i<3;i++) alpha[i]=ins->omgb[i]*dt;
     skewsym3(alpha,Ca);
     /* check if the value is too small to keep numerical robustness */
     if ((a=norm(alpha,3))>1E-8) {
@@ -132,8 +132,8 @@ extern int updateinsbe(const insopt_t *insopt,insstate_t *ins,const imud_t *data
     matmul3v("N",Omge,ins->ve,cori);
     for (i=0;i<3;i++) {
         ins->ae[i]=fe[i]+ge[i]-2.0*cori[i];
-        ins->ve[i]-=ins->ae[i]*t;
-        ins->re[i]-=ins->ve[i]*t+ins->ae[i]/2.0*t*t;
+        ins->ve[i]-=ins->ae[i]*dt;
+        ins->re[i]-=ins->ve[i]*dt+ins->ae[i]/2.0*dt*dt;
     }
     matcpy(ins->omgbp,data->gyro,1,3);
     matcpy(ins->fbp  ,data->accl,1,3);
@@ -184,7 +184,7 @@ static void geoparam(const double *pos,const double *vn,double *wen_n,
     }
 }
 /* quaternion multiply-------------------------------------------------------*/
-static void quatmul(const double *qab,const double *qca,double *qcb)
+extern void quatmulx(const double *qab,const double *qca,double *qcb)
 {
     setzero(qcb,4,1);
     qcb[0]=(qab[0])*qca[0]+(-qab[1])*qca[1]+(-qab[2])*qca[2]+(-qab[3])*qca[3];
@@ -220,9 +220,9 @@ extern void quatrot(const double *qab,double *va,int dir,double *vb)
         q[0]=qab[0];
         for (i=1;i<4;i++) q[i]=-qab[i];
     }
-    quatmul(q,v,vr_a);
+    quatmulx(q,v,vr_a);
     for (i=1;i<4;i++) q[i]=-qab[i];
-    quatmul(vr_a,q,vb_);
+    quatmulx(vr_a,q,vb_);
     for (i=0;i<3;i++) vb[i]=vb_[i+1];
 }
 /* convert rotation vector to quaternion-------------------------------------*/
@@ -230,12 +230,12 @@ extern void rv2quat(const double *rv,double *q)
 {
     double rot_ang=sqrt(SQR(rv[0])+SQR(rv[1])+SQR(rv[2]));
     double cR,sR,rx,ry,rz;
-    if (fabs(rot_ang)<1E-6) {
+    if (fabs(rot_ang)<1E-8) {
         q[0]=1.0; q[1]=q[2]=q[3]=0.0;
     }
     else {
-        cR=cos(rot_ang/2);
-        sR=sin(rot_ang/2);
+        cR=cos(rot_ang/2.0);
+        sR=sin(rot_ang/2.0);
         rx=rv[0]/rot_ang;
         ry=rv[1]/rot_ang;
         rz=rv[2]/rot_ang;
@@ -342,14 +342,23 @@ static void update(insstate_t *ins,const double *qbn,const double *vn,
     double Cbn[9],rn[3];
     quat2dcmx(qbn,Cbn);
 
+    matcpy(ins->Cbn,Cbn,3,3); matcpy(ins->vn,vn,1,3);
+
     matmul("TN",3,3,3,1.0,Cen,Cbn,0.0,ins->Cbe);
     matmul("TN",3,1,3,1.0,Cen,vn,0.0,ins->ve);
 
     rn[0]=acos(Cen[6]);
     rn[1]=acos(Cen[4]);
     rn[2]=h;
+    matcpy(ins->rn,rn,1,3);
+
     pos2ecef(rn,ins->re);
+#if 1
     getaccl(ins->fb,ins->Cbe,ins->re,ins->ve,ins->ae);
+#else
+    matmul("TN",3,1,3,1.0,Cen,ins->an,0.0,ins->ae);
+#endif
+    getvn(ins,ins->vn);
 }
 /* save precious epoch ins states--------------------------------------------*/
 static void savepins(insstate_t *ins,const imud_t *data)
@@ -378,6 +387,8 @@ extern int updateinsbn(const insopt_t *insopt,insstate_t *ins,const imud_t *data
     trace(3,"updateinsbn:\n");
 
     trace(5,"ins(-)=\n"); traceins(5,ins);
+
+    update_ins_state_n(ins);
 
     if ((dt=-timediff(data->time,ins->time))>MAXDT||fabs(dt)<1E-6) {
         trace(2,"time difference too large: %.0fs\n",dt);
@@ -415,15 +426,15 @@ extern int updateinsbn(const insopt_t *insopt,insstate_t *ins,const imud_t *data
 
     for (i=0;i<3;i++) dv2[i]=dv2[i]*dt;
     for (i=0;i<3;i++) {
-        ins->vn[i]=vn[i]-dv1[i]-dv2[i];
+        ins->vn[i]=vn[i]-dv1[i]-dv2[i]; ins->an[i]=(dv1[i]+dv2[i])/dt;
     }
     /* update the attitude */
     rvec2quat(da,qb);
-    quatmul(qbn,qb,q);
+    quatmulx(qbn,qb,q);
 
     for (i=0;i<3;i++) w[i]=(wen_n[i]+wie_n[i])*dt;
     rvec2quat(w,qn);
-    quatmul(qn,q,qbn);
+    quatmulx(qn,q,qbn);
 
     /* position updates */
     for (i=0;i<3;i++) {

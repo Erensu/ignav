@@ -251,6 +251,9 @@ static int init_ins(const imud_t *imu,const gsof_t *pos,const insopt_t *iopt,
     ins->time=sols[NP-1].t;
     ins->stat=INSS_INIT;
 
+    /* update ins state in n-frame */
+    update_ins_state_n(ins);
+
     trace(3,"initial ins state ok\n");
     return 1;
 }
@@ -387,6 +390,9 @@ static int wrt_solution(rtk_t *rtk,const solopt_t *solopt,int type)
             strwrite(&moni,buff,n);
             c=0;
         }
+#if 1   /* for debugs */
+        fprintf(stderr,"%s",buff);
+#endif
     }
     return n;
 }

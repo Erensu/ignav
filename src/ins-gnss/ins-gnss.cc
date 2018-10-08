@@ -885,7 +885,7 @@ extern void getaccl(const double *fib,const double *Cbe,const double *re,
     int i; double fe[3],ge[3],cori[3];
 
     matmul3v("N",Cbe,fib,fe);
-    pregrav(re, ge);
+    pregrav(re,ge);
     matmul3v("N",Omge,ve,cori);
 
     for (i=0;i<3;i++) {
@@ -1409,7 +1409,15 @@ extern int lcigpos(const insopt_t *opt, const imud_t *data, insstate_t *ins,
 
     /* ins mechanization update */
     ins->stat=INSS_NONE;
-    if ((opt->soltype==0||opt->soltype==3)?!updateins(opt,ins,data):!updateinsb(opt,ins,data)) {
+    if ((opt->soltype==0||opt->soltype==3)?
+#if 1
+        /* update ins states based on llh position mechanization */
+        !updateinsn(opt,ins,data):
+#else
+        /* update ins states in e-frame */
+        !updateins(opt,ins,data):
+#endif
+        !updateinsb(opt,ins,data)) {
         trace(2,"ins mechanization updates fail\n");
         return 0;
     }
@@ -1465,11 +1473,13 @@ extern int lcigpos(const insopt_t *opt, const imud_t *data, insstate_t *ins,
                 matcpy(ins->Pa,P,nx,nx);
             }
             else {
+                /* update ins states cov. */
                 matcpy(ins->x,x,nx,1); matcpy(ins->P,P,nx,nx);
             }
+            update_ins_state_n(ins);
             ins->stat=INSS_LCUD;
         }
-        /* updates ins-gnss loosely coupled */
+        /* update ins-gnss loosely coupled */
         ins->plct=ins->time;
 
         /* recheck attitude */

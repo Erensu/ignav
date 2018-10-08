@@ -170,7 +170,15 @@ extern int tcigpos(const prcopt_t *opt,const obsd_t *obs,int n,const nav_t *nav,
     }
 #endif
     ins->stat=INSS_NONE; /* start ins mechanization */
-    if (!updateins(insopt,ins,imu)) {
+    if (
+#if 0
+        /* update ins states based on llh position mechanization */
+        !updateinsn(insopt,ins,imu);
+#else
+        /* update ins states in e-frame */
+        !updateins(insopt,ins,imu)
+        ) {
+#endif
         trace(2,"ins mechanization update fail\n");
         return 0;
     }
@@ -236,9 +244,12 @@ extern int tcigpos(const prcopt_t *opt,const obsd_t *obs,int n,const nav_t *nav,
             }
             /* save precious epoch gps measurement */
             savegmeas(ins,&rtk->sol,NULL);
-
+#if 1
             /* recheck attitude */
             rechkatt(ins,imu);
+#endif
+            /* ins state in n-frame */
+            update_ins_state_n(ins);
         }
         else {
             trace(2,"tightly coupled fail\n");

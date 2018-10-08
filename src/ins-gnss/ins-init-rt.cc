@@ -118,6 +118,9 @@ extern int insinitrt(rtksvr_t *svr,const sol_t *sol,const imud_t *imu)
     }
     ins->time=sols[MAXSOL-1].time;
 
+    /* update ins state in n-frame */
+    update_ins_state_n(ins);
+
     trace(3,"initial ins state ok\n");
     return 1;
 }
@@ -184,11 +187,14 @@ extern int insinirtobs(rtksvr_t *svr,const obsd_t *obs,int n,const imud_t *imu)
     }
     /* initialize ins states */
     initinsrt(svr);
-    if (!ant2inins(sols[MAXSOL-1].time,sols[MAXSOL-1].rr,
-                   vr,&popt.insopt,NULL,ins,NULL)) {
+    if (!ant2inins(sols[MAXSOL-1].time,sols[MAXSOL-1].rr,vr,&popt.insopt,
+                   NULL,ins,NULL)) {
         return 0;
     }
     ins->time=sols[MAXSOL-1].time;
+
+    /* update ins state in n-frame */
+    update_ins_state_n(ins);
 
     /* reset rtk position options */
     rtkfree(&rtk); first=1;
@@ -260,11 +266,10 @@ extern int insinitdualant(rtksvr_t *svr,const pose_meas_t *pose,const sol_t *sol
     matmul("NN",3,3,3,1.0,Rz,Ry,0.0,Cvn);
 
     matmul33("NNT",Cne,Cvn,ins->Cvb,3,3,3,3,ins->Cbe);
-    gapv2ipv(sols[MAXSOL-1].rr,vr,ins->Cbe,
-             ins->lever,
-             imu,
-             ins->re,
-             ins->ve);
+    gapv2ipv(sols[MAXSOL-1].rr,vr,ins->Cbe,ins->lever,imu,ins->re,ins->ve);
+
+    /* update ins state in n-frame */
+    update_ins_state_n(ins);
 
     ins->time=imu->time;
     trace(3,"initial ins state ok\n");

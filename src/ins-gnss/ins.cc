@@ -541,7 +541,7 @@ static void updateatt(double t, double *Cbe, const double *omgb)
 *----------------------------------------------------------------------------*/
 extern int updateins(const insopt_t *insopt,insstate_t *ins,const imud_t *data)
 {
-    double t,Cbe[9],fe[3],ge[3],cori[3],Cbb[9]={1,0,0,0,1,0,0,0,1};
+    double dt,Cbe[9],fe[3],ge[3],cori[3],Cbb[9]={1,0,0,0,1,0,0,0,1};
     double Ca[9],Ca2[9],a1,a2,a,alpha[3]={0},Omg[9]={0},ae[3]={0};
     int i;
 
@@ -549,8 +549,8 @@ extern int updateins(const insopt_t *insopt,insstate_t *ins,const imud_t *data)
 
     trace(5,"ins(-)=\n"); traceins(5,ins);
 
-    if ((t=timediff(data->time,ins->time))>MAXDT||fabs(t)<1E-6) {
-        trace(2,"time difference too large: %.0fs\n",t);
+    if ((dt=timediff(data->time,ins->time))>MAXDT||fabs(dt)<1E-6) {
+        trace(2,"time difference too large: %.0fs\n",dt);
         return 0;
     }
     for (i=0;i<3;i++) {
@@ -564,7 +564,7 @@ extern int updateins(const insopt_t *insopt,insstate_t *ins,const imud_t *data)
             ins->fb[i]  =data->accl[i]-ins->ba[i];
         }
     }
-    ae[2]=OMGE*t;
+    ae[2]=OMGE*dt;
 
     /* save precious ins states */
     matcpy(ins->pins,  ins->re,1,3);
@@ -575,10 +575,10 @@ extern int updateins(const insopt_t *insopt,insstate_t *ins,const imud_t *data)
 
     /* save ins attitude of precious time */
     matcpy(ins->pCbe,Cbe,3,3);
-    updateatt(t,ins->Cbe,ins->omgb);
+    updateatt(dt,ins->Cbe,ins->omgb);
     
 #if INSUPDPRE
-    for (i=0;i<3;i++) alpha[i]=ins->omgb[i]*t;
+    for (i=0;i<3;i++) alpha[i]=ins->omgb[i]*dt;
     skewsym3(alpha,Ca);
     /* check if the value is too small to keep numerical robustness */
     if ((a=norm(alpha,3))>1E-8) {
@@ -609,11 +609,14 @@ extern int updateins(const insopt_t *insopt,insstate_t *ins,const imud_t *data)
     matmul3v("N",Omge,ins->ve,cori);
     for (i=0;i<3;i++) {
         ins->ae[i]=fe[i]+ge[i]-2.0*cori[i]; /* (5.28) */
-        ins->ve[i]+=ins->ae[i]*t; /* 5.29 */
-        ins->re[i]+=ins->ve[i]*t+ins->ae[i]/2.0*t*t; /* (5.31) */
+        ins->ve[i]+=ins->ae[i]*dt; /* 5.29 */
+        ins->re[i]+=ins->ve[i]*dt+ins->ae[i]/2.0*dt*dt; /* (5.31) */
     }
     matcpy(ins->omgbp,data->gyro,1,3);
     matcpy(ins->fbp  ,data->accl,1,3);
+
+    /* update ins state in n-frame */
+    update_ins_state_n(ins);
 
     ins->dt=timediff(data->time,ins->time);
     ins->ptime=ins->time;
@@ -649,110 +652,7 @@ extern void seteye(double* A,int n)
  * --------------------------------------------------------------------------*/
 extern int insupdate_ned(const insopt_t *insopt,insstate_t *ins,const imud_t *data)
 {
-    int i;
-    double Cbn[9],t,alpha[3],a,omega_ie_n[3],rn[3],vn[3],R_N=0.0,R_E=0.0,gn[3],vnn[3];
-    double old_omega_en_n[3],omega_en_n[3];
-    double Ca[9],Ca2[9],Cbb[9]={1,0,0,0,1,0,0,0,1},Cbbp[9],a1,a2,aCbn[9],f_ib_n[3];
-    double R_N1,R_E1;
-
-    trace(5,"ins(-)=\n"); traceins(5,ins);
-
-    if ((t=timediff(data->time,ins->time))>MAXDT||fabs(t)<1E-6) {
-        trace(2,"time difference too large : %.0fs\n",t);
-        return 0;
-    }
-    for (i=0;i<3;i++) {
-        ins->omgb0[i]=data->gyro[i];
-        ins->fb0  [i]=data->accl[i];
-        if (insopt->exinserr) {
-            ins_errmodel(data->accl,data->gyro,ins->fb,ins->omgb,ins);
-        }
-        else {
-            ins->omgb[i]=data->gyro[i]-ins->bg[i]; /* (4.18) */
-            ins->fb  [i]=data->accl[i]-ins->ba[i];
-        }
-    }
-    /* update attitude */
-    matcpy(Cbn,ins->Cbn,3,3);
-    matcpy(rn,ins->rn,1,3);
-    matcpy(vn,ins->vn,1,3);
-    for (i=0;i<3;i++) alpha[i]=ins->omgb[i]*t;
-    a=norm(alpha,3);
-    skewsym3(alpha,Ca); matmul3("NN",Ca,Ca,Ca2);
-
-    /* determine the angular rate of the ecef frame
-     * w.r.t the eci frame, resolved about ned */
-    omega_ie_n[0]= OMGE*cos(rn[0]);
-    omega_ie_n[1]= 0.0;
-    omega_ie_n[2]=-OMGE*sin(rn[0]);
-
-    /* determine the angular rate of the ned frame
-     * w.r.t the eci frame, resolved about ecef */
-    radii(rn,&R_N,&R_E);
-    old_omega_en_n[0]= vn[1]/(R_E+rn[2]);
-    old_omega_en_n[1]=-vn[0]/(R_N+rn[2]);
-    old_omega_en_n[2]=-vn[1]*tan(rn[0])/(R_E+rn[2]);
-
-    /* calculate the average body-to-ecef-frame coordinate transformation matrix */
-    if (a>1.E-8) {
-        a1=(1.0-cos(a))/SQR(a); a2=1.0/SQR(a)*(1.0-sin(a)/a);
-    }
-    else a1=a2=0.0;
-    for (i=0;i<9;i++) Cbb[i]+=a1*Ca[i]+a2*Ca2[i];
-    for (i=0;i<3;i++) alpha[i]=(old_omega_en_n[i]+omega_ie_n[i])/2.0;
-    skewsym3(alpha,Ca);
-    matmul3("NN",Cbn,Cbb,Cbbp);
-    matmul3("NN",Ca,Cbn,Ca2);
-    for (i=0;i<9;i++) aCbn[i]=Cbbp[i]-Ca2[i];
-
-    /* transform specific force to ecef-frame resolving axes */
-    matmul3v("N",aCbn,ins->fb,f_ib_n);
-    gravity_ned(rn,gn);
-    for (i=0;i<3;i++) alpha[i]=old_omega_en_n[i]+omega_ie_n[i]*2.0;
-    skewsym3(alpha,Ca);
-    matmul3v("N",Ca,vn,vnn);
-
-    /* updates velecity */
-    for (i=0;i<3;i++) ins->vn[i]=vn[i]+t*(f_ib_n[i]+gn[i]-vnn[i]);
-
-    /* update height */
-    ins->rn[2]=rn[2]-0.5*t*(vn[2]+ins->vn[2]);
-
-    /* update latitude */
-    ins->rn[0]=rn[0]+0.5*t*(vn[0]/(R_N+rn[2])+ins->vn[0]/(R_N+ins->rn[2]));
-
-    /* update longitude */
-    radii(ins->rn,&R_N1,&R_E1);
-    ins->rn[1]=rn[1]+0.5*t*(vn[1]/((R_E+rn[2])*cos(rn[0]))+
-            ins->vn[1]/((R_E1+ins->rn[2])*cos(ins->rn[0])));
-    
-    /* update attitude */
-    omega_en_n[0]= ins->vn[1]/(R_E1+ins->rn[2]);
-    omega_en_n[1]=-ins->vn[0]/(R_N1+ins->rn[2]);
-    omega_en_n[2]=-ins->vn[1]*tan(ins->rn[0])/(R_E1+ins->rn[2]);
-    seteye(Cbb,3);
-    for (i=0;i<3;i++) alpha[i]=ins->omgb[i]*t;
-    skewsym3(alpha,Ca); matmul3("NN",Ca,Ca,Ca2);
-    if (a>1E-8) {
-        a1=sin(a)/a; a2=(1.0-cos(a))/SQR(a);
-    }
-    else a1=1.0,a2=0.0;
-
-    for (i=0;i<9;i++) Cbb[i]+=a1*Ca[i]+a2*Ca2[i];
-    for (i=0;i<3;i++) {
-        alpha[i]=t*(omega_ie_n[i]+omega_en_n[i]*0.5+old_omega_en_n[i]*0.5);
-    }
-    seteye(Ca,3); skewsym3(alpha,Ca2);
-    for (i=0;i<9;i++) Ca[i]-=Ca2[i];
-    matmul3("NN",Ca,Cbn,Cbbp);
-    matmul3("NN",Cbbp,Cbb,ins->Cbn);
-    
-    ins->dt=timediff(data->time,ins->time);
-    ins->time=data->time;
-    ins->stat=INSS_MECH;
-
-    trace(5,"ins(+)=\n"); traceins(5,ins);
-    return 1;
+    return updateinsn(insopt,ins,data);
 }
 /* remove effects of lever-arm------------------------------------------------
  * args  :         double *pos      I  imu body position in ecef-frame
@@ -962,6 +862,7 @@ extern void gapv2ipv(const double *pos,const double *vel,const double *Cbe,
         matmul33("NNN",Omge,Cbe,lever,3,3,3,1,TT);
         for (i=0;i<3;i++) veli[i]=vel[i]-T[i]+TT[i];
     }
+
 }
 /* correction direction cosine matrix by attitude errors---------------------
  * args   :  double *dx  I   attitude errors
@@ -1120,5 +1021,41 @@ extern void getvn(const insstate_t *ins,double *vn)
     ecef2pos(ins->re,pos);
     ned2xyz(pos,C);
     matmul("TN",3,1,3,1.0,C,ins->ve,0.0,vn); 
+}
+/* update ins states in n-frame----------------------------------------------*/
+extern void update_ins_state_n(insstate_t *ins)
+{
+    double Cne[9];
+
+    /* attitude */
+    ned2xyz(ins->rn,Cne);
+    matmul("TN",3,3,3,1.0,Cne,ins->Cbe,0.0,ins->Cbn);
+
+    /* position/velocity */
+    ecef2pos(ins->re,ins->rn);
+    getvn(ins,ins->vn);
+
+    /* acceleration */
+    matmul("NN",3,1,3,1.0,Cne,ins->ae,0.0,ins->an);
+}
+/* update ins states in e-frame----------------------------------------------*/
+extern void update_ins_state_e(insstate_t *ins)
+{
+    double Cne[9];
+
+    /* attitude and velocity */
+    ned2xyz(ins->rn,Cne);
+    matmul("NN",3,3,3,1.0,Cne,ins->Cbn,0.0,ins->Cbe);
+    matmul("NN",3,1,3,1.0,Cne,ins->vn,0.0,ins->ve);
+
+    /* position */
+    pos2ecef(ins->rn,ins->re);
+
+#if 1 /* update acceleration in e-frame */
+    getaccl(ins->fb,ins->Cbe,ins->re,ins->ve,ins->ae);
+#else
+    /* update acceleration in n-frame */
+    matmul("NN",3,1,3,1.0,Cne,ins->an,0.0,ins->ae);
+#endif
 }
 
