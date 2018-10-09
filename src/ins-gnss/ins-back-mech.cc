@@ -138,6 +138,9 @@ extern int updateinsbe(const insopt_t *insopt,insstate_t *ins,const imud_t *data
     matcpy(ins->omgbp,data->gyro,1,3);
     matcpy(ins->fbp  ,data->accl,1,3);
 
+    /* update ins stats in n-frame */
+    update_ins_state_n(ins);
+
     ins->dt=timediff(data->time,ins->time);
     ins->ptime=ins->time;
     ins->time =data->time;

@@ -222,9 +222,7 @@ static int init_ins(const imud_t *imu,const gsof_t *pos,const insopt_t *iopt,
         return 0;
     }
     /* initial ins states */
-    if (!ant2inins(sols[NP-1].t,sols[NP-1].pos,vr,
-                   iopt,
-                   NULL,
+    if (!ant2inins(sols[NP-1].t,sols[NP-1].pos,vr,iopt,NULL,
                    ins,NULL)) {
         trace(2,"initial ins state fail\n");
         return 0;

@@ -22,6 +22,7 @@
 #define E       0.0818191908425     /* WGS84 eccentricity */
 #define RP      6356752.31425       /* WGS84 Polar radius in meters */
 #define FLAT    1.0/298.257223563   /* WGS84 flattening */
+#define E_SQR   0.00669437999014    /* sqr of linear eccentricity of the ellipsoid */
 
 /* global variable -----------------------------------------------------------*/
 extern const double Omge[9]={0,OMGE,0,-OMGE,0,0,0,0,0}; /* (5.18) */
@@ -862,7 +863,6 @@ extern void gapv2ipv(const double *pos,const double *vel,const double *Cbe,
         matmul33("NNN",Omge,Cbe,lever,3,3,3,1,TT);
         for (i=0;i<3;i++) veli[i]=vel[i]-T[i]+TT[i];
     }
-
 }
 /* correction direction cosine matrix by attitude errors---------------------
  * args   :  double *dx  I   attitude errors
@@ -1027,16 +1027,16 @@ extern void update_ins_state_n(insstate_t *ins)
 {
     double Cne[9];
 
-    /* attitude */
+    /* position */
+    ecef2pos(ins->re,ins->rn);
+
+    /* attitude/velocity */
     ned2xyz(ins->rn,Cne);
     matmul("TN",3,3,3,1.0,Cne,ins->Cbe,0.0,ins->Cbn);
-
-    /* position/velocity */
-    ecef2pos(ins->re,ins->rn);
-    getvn(ins,ins->vn);
+    matmul("TN",3,1,3,1.0,Cne,ins->ve ,0.0,ins->vn );
 
     /* acceleration */
-    matmul("NN",3,1,3,1.0,Cne,ins->ae,0.0,ins->an);
+    matmul("TN",3,1,3,1.0,Cne,ins->ae,0.0,ins->an);
 }
 /* update ins states in e-frame----------------------------------------------*/
 extern void update_ins_state_e(insstate_t *ins)
@@ -1057,5 +1057,150 @@ extern void update_ins_state_e(insstate_t *ins)
     /* update acceleration in n-frame */
     matmul("NN",3,1,3,1.0,Cne,ins->an,0.0,ins->ae);
 #endif
+}
+/* computes the curvature matrix and the gravity-----------------------------*/
+static void geoparam(const double *pos,const double *vn,double *wen_n,
+                     double *wie_n,double *g,double *Reo,double *Rno)
+{
+    static double a1,a2,a3,a4,a5,a6;
+    double sr,Re,Rn,sL2,sL4;
+
+    /* local radii */
+    sr=sqrt(1.0-E_SQR*SQR(sin(pos[0])));
+    Re=(RE_WGS84/sr)+pos[2];
+    Rn=(RE_WGS84*(1.0-E_SQR)/(sr*sr*sr))+pos[2];
+
+    if (Reo) *Reo=Re;
+    if (Rno) *Rno=Rn;
+
+    /* local geodetic frame implementation */
+    if (wen_n) {
+        wen_n[0]= vn[1]/Re;
+        wen_n[1]=-vn[0]/Rn;
+        wen_n[2]=-vn[1]*tan(pos[0])/Re;
+    }
+    if (wie_n) {
+        wie_n[0]= OMGE*cos(pos[0]);
+        wie_n[1]= 0.0;
+        wie_n[2]=-OMGE*sin(pos[0]);
+    }
+    /* plump bob gravity (see:Heiskanen and Moritz (1967))*/
+    if (g) {
+        sL2=SQR(sin(pos[0]));
+        sL4=SQR(sL2);
+
+        a1= 9.7803267715;
+        a2= 0.0052790414;
+        a3= 0.0000232718;
+        a4=-0.0000030876910891;
+        a5= 0.0000000043977311;
+        a6= 0.0000000000007211;
+        *g=a1*(1+a2*sL2+a3*sL4)+(a4+a5*sL2)*pos[2]+a6*SQR(pos[2]);
+    }
+}
+/* get dcm matrix of b-frame to n-frame--------------------------------------*/
+static void getqbn(const insstate_t *ins, double* qbn)
+{
+    double pos[3],Cne[9],Cbn[9];
+    ecef2pos(ins->re,pos);
+    ned2xyz(pos,Cne);
+    matmul3("TN",Cne,ins->Cbe,Cbn);
+    dcm2quatx(Cbn,qbn);
+}
+/* save precious epoch ins states--------------------------------------------*/
+static void savepins(insstate_t *ins,const imud_t *data)
+{
+    matcpy(ins->omgbp,data->gyro,1,3);
+    matcpy(ins->fbp  ,data->accl,1,3);
+    matcpy(ins->pins  ,ins->re ,1,3);
+    matcpy(ins->pins+3,ins->ve ,1,3);
+    matcpy(ins->pCbe  ,ins->Cbe,3,3);
+}
+/* update ins states ----------------------------------------------------------
+* update ins states based on Llh position mechanization
+* args   : insopt   *insopt I   ins updates options
+*          insstate_t *ins  IO  ins states
+*          imudata_t *data  I   imu measurement data
+* return : 0 (fail) or 1 (ok)
+*----------------------------------------------------------------------------*/
+extern int updateinsn(const insopt_t *insopt,insstate_t *ins,const imud_t *data)
+{
+    double dt,vmid[3],wen_n[3],wie_n[3],Rn,Re,g;
+    double dv[3],dv1[3],dv2[3],qbn[4],w[3],rn[3];
+    double da[3],qb[4],qn[4],q[4];
+    int i;
+
+    trace(3,"updateins:\n");
+
+    trace(5,"ins(-)=\n"); traceins(5,ins);
+
+    /* update ins state in n-frame */
+    update_ins_state_n(ins);
+
+    if ((dt=timediff(data->time,ins->time))>MAXDT||fabs(dt)<1E-6) {
+        trace(2,"time difference too large: %.0fs\n",dt);
+        return 0;
+    }
+    for (i=0;i<3;i++) {
+        ins->omgb0[i]=data->gyro[i];
+        ins->fb0  [i]=data->accl[i];
+        if (insopt->exinserr) {
+            ins_errmodel(data->accl,data->gyro,ins->fb,ins->omgb,ins);
+        }
+        else {
+            ins->omgb[i]=data->gyro[i]-ins->bg[i];
+            ins->fb[i]  =data->accl[i]-ins->ba[i];
+        }
+    }
+    /* save precious epoch ins states */
+    savepins(ins,data);
+
+    matcpy(vmid,ins->vn,3,1);
+    matcpy(rn  ,ins->rn,3,1);
+
+    /* geo parameters */
+    geoparam(rn,vmid,wen_n,wie_n,&g,&Re,&Rn);
+
+    /* update ins velocity */
+    for (i=0;i<3;i++) dv[i]=ins->fb[i]*dt;
+    getqbn(ins,qbn);
+    quatrot(qbn,dv,0,dv1);
+
+    for (i=0;i<3;i++) w[i]=2.0*wie_n[i]+wen_n[i];
+    cross3(ins->vn,w,dv2);
+    dv2[2]=g+dv2[2];
+
+    for (i=0;i<3;i++) dv2[i]=dv2[i]*dt;
+    for (i=0;i<3;i++) {
+        ins->vn[i]=vmid[i]+dv1[i]+dv2[i]; ins->an[i]=(dv1[i]+dv2[i])/dt;
+    }
+    /* update ins attitude */
+    for (i=0;i<3;i++) vmid[i]=(vmid[i]+ins->vn[i])/2.0;
+    for (i=0;i<3;i++) da[i]=ins->omgb[i]*dt; rvec2quat(da,qb);
+    quatmulx(qbn,qb,q);
+
+    /* geo parameters */
+    geoparam(rn,vmid,wen_n,wie_n,&g,&Re,&Rn);
+    for (i=0;i<3;i++) {
+        da[i]=-(wen_n[i]+wie_n[i])*dt;
+    }
+    rvec2quat(da,qn);
+    quatmulx(qn,q,qbn); quat2dcmx(qbn,ins->Cbn);
+
+    /*  update ins position */
+    ins->rn[0]+=1.0/Rn*vmid[0]*dt;
+    ins->rn[1]+=1.0/Re/cos(rn[0])*vmid[1]*dt;
+    ins->rn[2]-=vmid[2]*dt;
+
+    /* update ins states in e-frame */
+    update_ins_state_e(ins);
+
+    ins->dt=dt;
+    ins->ptime=ins->time;
+    ins->time =data->time;
+    ins->stat =INSS_MECH;
+
+    trace(5,"ins(+)=\n"); traceins(5,ins);
+    return 1;
 }
 

@@ -1476,7 +1476,7 @@ extern int lcigpos(const insopt_t *opt, const imud_t *data, insstate_t *ins,
                 /* update ins states cov. */
                 matcpy(ins->x,x,nx,1); matcpy(ins->P,P,nx,nx);
             }
-            update_ins_state_n(ins);
+            /* update ins solution status */
             ins->stat=INSS_LCUD;
         }
         /* update ins-gnss loosely coupled */
