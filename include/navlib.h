@@ -528,8 +528,8 @@ extern "C"{
 #define STRFMT_UBXM8 23                 /* stream format: ublox evk-m8u for input imu data */
 #define STRFMT_UBXSOL 24                /* stream format: ublox evk-m8u for input PVT solution data */
 #define STRFMT_M39   25                 /* stream format: M39 imu raw data */
-#define STRFMT_RINEX 26                 /* stream format: rinex observation data */
-#define STRFMT_M39MIX 27                /* stream format: M39 mix raw data (include image data) */
+#define STRFMT_RINEX_RT  26             /* stream format: rinex observation data */
+#define STRFMT_M39MIX    27             /* stream format: M39 mix raw data (include image data) */
 #define STRFMT_EUROCIMU  28             /* stream format: EUROC imu measurement data */
 #define STRFMT_EUROCIMG  29             /* stream format: EUROC image measurement data */
 #define STRFMT_KARLIMG   30             /* stream format: Karlsruhe dataset image measurement data */
@@ -2333,6 +2333,7 @@ EXPORT void matmul(const char *tr, int n, int k, int m, double alpha,
 EXPORT void matmul33(const char *tr,const double *A,const double *B,const double *C,
                      int n,int p,int q,int m,double *D);
 EXPORT int  matinv(double *A, int n);
+EXPORT int  matsvd(double *A, int m,int n,double *U,double *W,double *V);
 EXPORT int  solve (const char *tr, const double *A, const double *Y, int n,
                    int m, double *X);
 EXPORT int  lsq   (const double *A, const double *y, int n, int m, double *x,
@@ -2915,6 +2916,8 @@ EXPORT void dcm2quat(const double *C,quat_t *q);
 EXPORT void quat2dcm(const quat_t *q,double *C);
 EXPORT void ins_errmodel(const double *accl,const double *gyro,double *cor_accl,
                          double *cor_gyro,insstate_t* ins);
+EXPORT void rotscull_corr(insstate_t *ins,const insopt_t *opt,double dt,
+                          double *dv,double *da);
 EXPORT void rp2head(const double roll,const double picth,const double *gyro,double *head);
 EXPORT void getatt(const insstate_t *ins,double *rpy);
 EXPORT double NORMANG(double ang);

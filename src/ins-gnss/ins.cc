@@ -23,6 +23,7 @@
 #define RP      6356752.31425       /* WGS84 Polar radius in meters */
 #define FLAT    1.0/298.257223563   /* WGS84 flattening */
 #define E_SQR   0.00669437999014    /* sqr of linear eccentricity of the ellipsoid */
+#define SCULL_CORR 1                /* rotational and sculling motion correction */
 
 /* global variable -----------------------------------------------------------*/
 extern const double Omge[9]={0,OMGE,0,-OMGE,0,0,0,0,0}; /* (5.18) */
@@ -455,12 +456,12 @@ extern void initins(insstate_t *ins, const double *re, double angh,
     ecef2pos(re,pos);
     rpy[2]=angh;
 
-    /* initial ned position/velecity/acceleration */
+    /* initial ned position/velocity/acceleration */
     for (i=0;i<3;i++) {
         ins->rn[i]=pos[i];
         ins->vn[i]=ins->an[i]=ins->ba[i]=ins->bg[i]=ins->fb[i]=0.0;
     }
-    /* initial ins position/velecity/acceleration */
+    /* initial ins position/velocity/acceleration */
     for (i=0;i<3;i++) {
         ins->re[i]=re[i];
         ins->ve[i]=ins->ae[i]=ins->ba[i]=ins->bg[i]=ins->fb[i]=0.0;
@@ -495,21 +496,31 @@ extern void initins(insstate_t *ins, const double *re, double angh,
     }
     ins->time=time;
 }
+/* save precious epoch ins states--------------------------------------------*/
+static void savepins(insstate_t *ins,const imud_t *data)
+{
+    matcpy(ins->omgbp ,ins->omgb,1,3);
+    matcpy(ins->fbp   ,ins->fb  ,1,3);
+    matcpy(ins->pins  ,ins->re  ,1,3);
+    matcpy(ins->pins+3,ins->ve  ,1,3);
+    matcpy(ins->pCbe  ,ins->Cbe ,3,3);
+}
 /* update ins attitude --------------------------------------------------------
  * args    : double t     I    time interval between epochs (s)
  *           double *Cbe  I    previous body-to-ecef coordinate transformation matrix
  *                        O    uipdates body-to-ecef coordinate transformation matrix
  *           double *omgb I    angular rate of body frame (rad/s) w.r.t eci-frame
  *                             expressed in ecef-frame
+ *           double *das  I    rotational and sculling motion correction
  * return  :none
  * ---------------------------------------------------------------------------*/
-static void updateatt(double t, double *Cbe, const double *omgb)
+static void updateatt(double t, double *Cbe, const double *omgb,const double *das)
 {
     double alpha[3],a,a1,a2,Ca[9],Ca2[9],Comg[9],Cbep[9];
     double Cbb[9]={1,0,0,0,1,0,0,0,1},Cei[9]={0};
     int i;
     trace(3,"updateatt:\n");
-    for (i=0;i<3;i++) alpha[i]=omgb[i]*t;
+    for (i=0;i<3;i++) alpha[i]=omgb[i]*t+das[i];
     skewsym3(alpha,Ca);
     matmul3("NN",Ca,Ca,Ca2);
     a=norm(alpha,3);
@@ -544,11 +555,15 @@ extern int updateins(const insopt_t *insopt,insstate_t *ins,const imud_t *data)
 {
     double dt,Cbe[9],fe[3],ge[3],cori[3],Cbb[9]={1,0,0,0,1,0,0,0,1};
     double Ca[9],Ca2[9],a1,a2,a,alpha[3]={0},Omg[9]={0},ae[3]={0};
+    double das[3]={0},dvs[3]={0},fb[3];
     int i;
 
     trace(3,"updateins:\n");
 
     trace(5,"ins(-)=\n"); traceins(5,ins);
+
+    /* save precious epoch ins states */
+    savepins(ins,data);
 
     if ((dt=timediff(data->time,ins->time))>MAXDT||fabs(dt)<1E-6) {
         trace(2,"time difference too large: %.0fs\n",dt);
@@ -562,24 +577,21 @@ extern int updateins(const insopt_t *insopt,insstate_t *ins,const imud_t *data)
         }
         else {
             ins->omgb[i]=data->gyro[i]-ins->bg[i]; /* (4.18) */
-            ins->fb[i]  =data->accl[i]-ins->ba[i];
+            ins->fb  [i]=data->accl[i]-ins->ba[i];
         }
     }
     ae[2]=OMGE*dt;
 
-    /* save precious ins states */
-    matcpy(ins->pins,  ins->re,1,3);
-    matcpy(ins->pins+3,ins->ve,1,3);
-
+#if SCULL_CORR
+    /* rotational and sculling motion correction */
+    rotscull_corr(ins,insopt,dt,dvs,das);
+#endif
     /* update attitude */
-    matcpy(Cbe,ins->Cbe,3,3);
-
-    /* save ins attitude of precious time */
-    matcpy(ins->pCbe,Cbe,3,3);
-    updateatt(dt,ins->Cbe,ins->omgb);
+    for (i=0;i<9;i++) Cbe[i]=ins->Cbe[i];
+    updateatt(dt,ins->Cbe,ins->omgb,das);
     
 #if INSUPDPRE
-    for (i=0;i<3;i++) alpha[i]=ins->omgb[i]*dt;
+    for (i=0;i<3;i++) alpha[i]=ins->omgb[i]*dt+das[i];
     skewsym3(alpha,Ca);
     /* check if the value is too small to keep numerical robustness */
     if ((a=norm(alpha,3))>1E-8) {
@@ -600,7 +612,8 @@ extern int updateins(const insopt_t *insopt,insstate_t *ins,const imud_t *data)
     for (i=0;i<9;i++) Cbe[i]=(Cbe[i]+ins->Cbe[i])/2.0; /* (5.21) */
 #endif
     /* specific-force/gravity in e-frame */
-    matmul3v("N",Cbe,ins->fb,fe);
+    for (i=0;i<3;i++) fb[i]=ins->fb[i]+dvs[i]/dt;
+    matmul3v("N",Cbe,fb,fe);
     if (insopt->gravityex) {
         pregrav(ins->re,ge); /* precious gravity model */
     }
@@ -613,9 +626,6 @@ extern int updateins(const insopt_t *insopt,insstate_t *ins,const imud_t *data)
         ins->ve[i]+=ins->ae[i]*dt; /* 5.29 */
         ins->re[i]+=ins->ve[i]*dt+ins->ae[i]/2.0*dt*dt; /* (5.31) */
     }
-    matcpy(ins->omgbp,data->gyro,1,3);
-    matcpy(ins->fbp  ,data->accl,1,3);
-
     /* update ins state in n-frame */
     update_ins_state_n(ins);
 
@@ -1107,14 +1117,29 @@ static void getqbn(const insstate_t *ins, double* qbn)
     matmul3("TN",Cne,ins->Cbe,Cbn);
     dcm2quatx(Cbn,qbn);
 }
-/* save precious epoch ins states--------------------------------------------*/
-static void savepins(insstate_t *ins,const imud_t *data)
+/* rotational and sculling motion correction --------------------------------*/
+extern void rotscull_corr(insstate_t *ins,const insopt_t *opt,double dt,
+                          double *dv,double *da)
 {
-    matcpy(ins->omgbp,data->gyro,1,3);
-    matcpy(ins->fbp  ,data->accl,1,3);
-    matcpy(ins->pins  ,ins->re ,1,3);
-    matcpy(ins->pins+3,ins->ve ,1,3);
-    matcpy(ins->pCbe  ,ins->Cbe,3,3);
+    double dap[3],dvp[3],dak[3],dvk[3],dv1[3],dv2[3],dv3[3];
+    int i;
+    for (i=0;i<3;i++) {
+        dap[i]=ins->omgbp[i]*ins->dt;
+        dvp[i]=ins->fbp  [i]*ins->dt;
+    }
+    for (i=0;i<3;i++) {
+        dak[i]=ins->omgb[i]*dt; dvk[i]=ins->fb[i]*dt;
+    }
+    cross3(dak,dvk,dv1);
+    cross3(dap,dvk,dv2);
+    cross3(dvp,dak,dv3);
+    for (i=0;i<3&&dv;i++) {
+        dv[i]=0.5*dv1[i]+1.0/12.0*(dv2[i]+dv3[i]);
+    }
+    if (da) {
+        cross3(dap,dak,da);
+        for (i=0;i<3;i++) da[i]=1.0/12.0*da[i];
+    }
 }
 /* update ins states ----------------------------------------------------------
 * update ins states based on Llh position mechanization
@@ -1128,6 +1153,7 @@ extern int updateinsn(const insopt_t *insopt,insstate_t *ins,const imud_t *data)
     double dt,vmid[3],wen_n[3],wie_n[3],Rn,Re,g;
     double dv[3],dv1[3],dv2[3],qbn[4],w[3],rn[3];
     double da[3],qb[4],qn[4],q[4];
+    double das[3]={0},dvs[3]={0};
     int i;
 
     trace(3,"updateins:\n");
@@ -1136,6 +1162,9 @@ extern int updateinsn(const insopt_t *insopt,insstate_t *ins,const imud_t *data)
 
     /* update ins state in n-frame */
     update_ins_state_n(ins);
+
+    /* save precious epoch ins states */
+    savepins(ins,data);
 
     if ((dt=timediff(data->time,ins->time))>MAXDT||fabs(dt)<1E-6) {
         trace(2,"time difference too large: %.0fs\n",dt);
@@ -1149,20 +1178,22 @@ extern int updateinsn(const insopt_t *insopt,insstate_t *ins,const imud_t *data)
         }
         else {
             ins->omgb[i]=data->gyro[i]-ins->bg[i];
-            ins->fb[i]  =data->accl[i]-ins->ba[i];
+            ins->fb  [i]=data->accl[i]-ins->ba[i];
         }
     }
-    /* save precious epoch ins states */
-    savepins(ins,data);
-
     matcpy(vmid,ins->vn,3,1);
     matcpy(rn  ,ins->rn,3,1);
 
     /* geo parameters */
     geoparam(rn,vmid,wen_n,wie_n,&g,&Re,&Rn);
 
+#if SCULL_CORR
+    /* rotational and sculling motion correction */
+    rotscull_corr(ins,insopt,dt,dvs,das);
+#endif
     /* update ins velocity */
-    for (i=0;i<3;i++) dv[i]=ins->fb[i]*dt;
+    for (i=0;i<3;i++) dv[i]=ins->fb[i]*dt+dvs[i];
+
     getqbn(ins,qbn);
     quatrot(qbn,dv,0,dv1);
 
@@ -1176,7 +1207,7 @@ extern int updateinsn(const insopt_t *insopt,insstate_t *ins,const imud_t *data)
     }
     /* update ins attitude */
     for (i=0;i<3;i++) vmid[i]=(vmid[i]+ins->vn[i])/2.0;
-    for (i=0;i<3;i++) da[i]=ins->omgb[i]*dt; rvec2quat(da,qb);
+    for (i=0;i<3;i++) da[i]=ins->omgb[i]*dt+das[i]; rvec2quat(da,qb);
     quatmulx(qbn,qb,q);
 
     /* geo parameters */

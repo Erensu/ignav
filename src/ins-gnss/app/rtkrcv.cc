@@ -259,6 +259,16 @@ static opt_t rcvopts[]={
     
     {"",0,NULL,""}
 };
+/* input stream path args------------------------------------------------------
+ * inpstr1-path:  rover observation data file path
+ * inpstr2-path:  base observation data file path
+ * inpstr3-path:  correction data file path
+ * inpstr4-path:  gnss position measurement data file path
+ * inpstr5-path:  imu measurement raw data file path
+ * inpstr6-path:  reserve
+ * inpstr7-path:  dual-ants measurement data path
+ * ---------------------------------------------------------------------------*/
+
 /* print usage ---------------------------------------------------------------*/
 static void printusage(void)
 {

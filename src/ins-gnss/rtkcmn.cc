@@ -1246,6 +1246,20 @@ extern int matinv(double *A, int n)
     free(ipiv); free(work);
     return info;
 }
+/* singular value decomposition of matrix ------------------------------------
+ * singular value decomposition of matrix of matrix (A= U*W*VT)
+ * args   :  double *A        I  matrix (m x n)
+ *           int m,n          I  size of matrix A
+ *           double *U        O  an m-by-m orthogonal matrix
+ *           double *V        O  an n-by-n orthogonal matrix
+ *           double *W        O  an m-by-n matrix which is zero except for
+ *                               its min(m,n) diagonal elements
+ * return : status (0:ok,0>:error)
+ *----------------------------------------------------------------------------*/
+extern int matsvd(double *A, int m,int n,double *U,double *W,double *VT)
+{
+    return 0;
+}
 /* solve linear equation -------------------------------------------------------
 * solve linear equation (X=A\Y or X=A'\Y)
 * args   : char   *tr       I   transpose flag ("N":normal,"T":transpose)
@@ -1270,9 +1284,7 @@ extern int solve(const char *tr, const double *A, const double *Y, int n,
     free(ipiv); free(B); 
     return info;
 }
-
 #else /* without LAPACK/BLAS or MKL */
-
 /* multiply matrix -----------------------------------------------------------*/
 extern void matmul(const char *tr, int n, int k, int m, double alpha,
                    const double *A, const double *B, double beta, double *C)

@@ -1018,11 +1018,11 @@ extern int input_raw(raw_t *raw, int format, unsigned char data)
         case STRFMT_UBXM8: return input_ubxm8(raw,data);
         case STRFMT_UBXSOL:return input_ubxsol(raw,data);
         case STRFMT_M39  : return input_m39   (raw,data);
-        case STRFMT_RINEX: return input_rinex (raw,data);
-        case STRFMT_M39MIX:return input_m39_mix(raw,data);
-        case STRFMT_EUROCIMU: return input_imu_euroc(raw,data);
-        case STRFMT_EUROCIMG: return input_img_euroc(raw,data);
-        case STRFMT_KARLIMG : return input_img_karl (raw,data);
+        case STRFMT_RINEX_RT: return input_rinex      (raw,data);
+        case STRFMT_M39MIX  : return input_m39_mix    (raw,data);
+        case STRFMT_EUROCIMU: return input_imu_euroc  (raw,data);
+        case STRFMT_EUROCIMG: return input_img_euroc  (raw,data);
+        case STRFMT_KARLIMG : return input_img_karl   (raw,data);
         case STRFMT_MAGIMU  : return input_malaga_imu (raw,data);
         case STRFMT_MAGGNSS : return input_malaga_gnss(raw,data);
         case STRFMT_MAGIMG  : return input_malaga_img (raw,data);

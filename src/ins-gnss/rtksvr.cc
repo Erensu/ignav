@@ -209,6 +209,8 @@ static void updateobs(rtksvr_t *svr,obs_t *obs,int index,int iobs)
                 !(satsys(obs->data[i].sat,NULL)&svr->rtk.opt.navsys)) continue;
             svr->obs[index][iobs].data[n]=obs->data[i];
             svr->obs[index][iobs].data[n++].rcv=index+1;
+
+            time2gpst(obs->data[i].time,&svr->week);
         }
         svr->obs[index][iobs].n=n;
         sortobs(&svr->obs[index][iobs]);
@@ -1037,46 +1039,56 @@ static void updatetimediff(rtksvr_t *svr)
 
     if (svr->rtk.opt.mode<=PMODE_FIXED) { /* for gnss position mode */
         if (syn->nr&&syn->nb) {
-            syn->dt[0]=timediff(syn->time[0],syn->time[1]);
+            syn->dt[0]=time2gpst(syn->time[0],NULL)-time2gpst(syn->time[1],NULL);
         }
     }
     /* ins loosely coupled position mode */
     if (svr->rtk.opt.mode==PMODE_INS_LGNSS) {
 
         if (svr->rtk.opt.insopt.lcopt==IGCOM_USESOL&&syn->ni&&syn->ns) {
-            syn->dt[0]=timediff(syn->time[2],syn->time[3]);
+            syn->dt[0]=time2gpst(syn->time[2],NULL)-time2gpst(syn->time[3],NULL);
         }
         if (svr->rtk.opt.insopt.lcopt==IGCOM_USEOBS&&syn->ni) {
-            if (syn->nr) syn->dt[0]=timediff(syn->time[2],syn->time[0]);
-            if (syn->nb) syn->dt[1]=timediff(syn->time[2],syn->time[1]);
+            if (syn->nr) {
+                syn->dt[0]=time2gpst(syn->time[2],NULL)-time2gpst(syn->time[0],NULL);
+            }
+            if (syn->nb) {
+                syn->dt[1]=time2gpst(syn->time[2],NULL)-time2gpst(syn->time[1],NULL);
+            }
         }
         if (svr->rtk.opt.insopt.pose_aid||svr->rtk.opt.insopt.align_dualants) {
             if (syn->np&&syn->ni) {
-                syn->dt[2]=timediff(syn->time[5],syn->time[2]);
+                syn->dt[2]=time2gpst(syn->time[5],NULL)-
+                           time2gpst(syn->time[2],NULL);
             }
         }
     }
     /* ins tightly coupled position mode */
     if (svr->rtk.opt.mode==PMODE_INS_TGNSS) {
         if (syn->ni&&syn->nr) {
-            syn->dt[0]=timediff(syn->time[2],syn->time[0]);
+            syn->dt[0]=time2gpst(syn->time[2],NULL)-
+                       time2gpst(syn->time[0],NULL);
         }
         if (syn->ni&&syn->nb) {
-            syn->dt[1]=timediff(syn->time[2],syn->time[1]);
+            syn->dt[1]=time2gpst(syn->time[2],NULL)-
+                       time2gpst(syn->time[1],NULL);
         }
         if (svr->rtk.opt.insopt.pose_aid||svr->rtk.opt.insopt.align_dualants) {
             if (syn->np&&syn->ni) {
-                syn->dt[2]=timediff(syn->time[5],syn->time[2]);
+                syn->dt[2]=time2gpst(syn->time[5],NULL)-
+                           time2gpst(syn->time[2],NULL);
             }
         }
     }
     /* camera measurement data aid */
     if (syn->nm&&syn->ni) {
-        syn->dt[2]=timediff(syn->time[2],syn->time[4]);
+        syn->dt[2]=time2gpst(syn->time[2],NULL)-
+                   time2gpst(syn->time[4],NULL);
     }
     /* visual odometry and ins loosely coupled */
     if (svr->rtk.opt.mode==PMODE_INS_LVO) {
-        syn->dt[0]=timediff(syn->time[2],syn->time[4]);
+        syn->dt[0]=time2gpst(syn->time[2],NULL)-
+                   time2gpst(syn->time[4],NULL);
     }
 }
 /* update input stream supend flag--------------------------------------------*/

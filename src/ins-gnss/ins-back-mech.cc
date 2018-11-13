@@ -21,6 +21,15 @@
 #define E_SQR      0.00669437999014   /* sqr of linear eccentricity of the ellipsoid */
 #define UPD_INS_E  0                  /* updates ins states in e-frame */
 
+/* save precious epoch ins states--------------------------------------------*/
+static void savepins(insstate_t *ins,const imud_t *data)
+{
+    matcpy(ins->omgbp ,ins->omgb,1,3);
+    matcpy(ins->fbp   ,ins->fb  ,1,3);
+    matcpy(ins->pins  ,ins->re  ,1,3);
+    matcpy(ins->pins+3,ins->ve  ,1,3);
+    matcpy(ins->pCbe  ,ins->Cbe ,3,3);
+}
 /* update ins attitude --------------------------------------------------------
  * args    : double t     I    time interval between epochs (s)
  *           double *Cbe  I    previous body-to-ecef coordinate transformation matrix
@@ -72,6 +81,9 @@ extern int updateinsbe(const insopt_t *insopt,insstate_t *ins,const imud_t *data
 
     trace(5,"ins(-)=\n"); traceins(5,ins);
 
+    /* save precious ins states */
+    savepins(ins,data);
+
     if ((dt=-timediff(data->time,ins->time))>MAXDT||fabs(dt)<1E-6) {
         trace(2,"time difference too large: %.0fs\n",dt);
         return 0;
@@ -87,17 +99,10 @@ extern int updateinsbe(const insopt_t *insopt,insstate_t *ins,const imud_t *data
             ins->fb[i]  =data->accl[i]-ins->ba[i];
         }
     }
+    matcpy(Cbe,ins->Cbe,3,3);
     ae[2]=OMGE*dt;
 
-    /* save precious ins states */
-    matcpy(ins->pins,  ins->re,1,3);
-    matcpy(ins->pins+3,ins->ve,1,3);
-
     /* update attitude */
-    matcpy(Cbe,ins->Cbe,3,3);
-
-    /* save ins attitude of precious time */
-    matcpy(ins->pCbe,Cbe,3,3);
     updateatt(dt,ins->Cbe,ins->omgb);
 
 #if INSUPDPRE
@@ -363,15 +368,6 @@ static void update(insstate_t *ins,const double *qbn,const double *vn,
 #endif
     getvn(ins,ins->vn);
 }
-/* save precious epoch ins states--------------------------------------------*/
-static void savepins(insstate_t *ins,const imud_t *data)
-{
-    matcpy(ins->omgbp,data->gyro,1,3);
-    matcpy(ins->fbp  ,data->accl,1,3);
-    matcpy(ins->pins  ,ins->re ,1,3);
-    matcpy(ins->pins+3,ins->ve ,1,3);
-    matcpy(ins->pCbe  ,ins->Cbe,3,3);
-}
 /* backward update ins states in n-frame-------------------------------------
  * update ins states with imu measurement data in n-frame in backward
  * args   : insopt   *insopt I   ins updates options
@@ -393,6 +389,9 @@ extern int updateinsbn(const insopt_t *insopt,insstate_t *ins,const imud_t *data
 
     update_ins_state_n(ins);
 
+    /* save precious ins states */
+    savepins(ins,data);
+
     if ((dt=-timediff(data->time,ins->time))>MAXDT||fabs(dt)<1E-6) {
         trace(2,"time difference too large: %.0fs\n",dt);
         return 0;
@@ -408,9 +407,6 @@ extern int updateinsbn(const insopt_t *insopt,insstate_t *ins,const imud_t *data
             ins->fb[i]  =data->accl[i]-ins->ba[i];
         }
     }
-    /* save precious ins states */
-    savepins(ins,data);
-
     /* position/velocity in n-frame */
     ecef2pos(ins->re,rn);
     getvn(ins,vn);
