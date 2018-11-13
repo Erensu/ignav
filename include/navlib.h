@@ -83,7 +83,7 @@ extern "C"{
 #define LAPACK
 #define TRACE                           /* trace information for debug */
 #define TRACE_INS     1                 /* trace ins updates information */
-#define TRACE_STDERR  0                 /* trace information to stderr if set */
+#define TRACE_STDERR  1                 /* trace information to stderr if set */
 #define VIG_TRACE_MAT 1                 /* trace matrix for debugs */
 #define MAXBUFF     4096                /* size of line buffer */
 #define MAXHIST     256                 /* size of history buffer */
