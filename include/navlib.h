@@ -2350,7 +2350,7 @@ EXPORT void matprint (const double *A, int n, int m, int p, int q);
 EXPORT void matfprint(const double *A, int n, int m, int p, int q, FILE *fp);
 
 EXPORT void matt(const double *A,int n,int m,double *At);
-EXPORT void svd(const double *A,int m,int n,double *U,double *W,double *V);
+EXPORT int svd(const double *A,int m,int n,double *U,double *W,double *V);
 EXPORT void matpow(const double *A,int m,int p,double *B);
 
 EXPORT void asi_blk_mat(double *A,int m,int n,const double *B,int p ,int q,

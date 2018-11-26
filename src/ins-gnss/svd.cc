@@ -17,6 +17,15 @@ static int iminarg1,iminarg2;
 #define MAX(x,y)  ((x)>=(y)?(x):(y))
 #define MIN(x,y)  ((x)<=(y)?(x):(y))
 
+#ifdef LAPACK
+extern "C"
+{
+extern void dgesvd_(char* jobu, char* jobvt, int* m, int* n, double* a,
+                    int* lda, double* s, double* u, int* ldu, double* vt, int* ldvt,
+                    double* work, int* lwork, int* info);
+};
+#endif
+
 /* compute (a2 + b2)^1/2 without destructive underflow or overflow-----------*/
 static double pythag(double a,double b)
 {
@@ -262,14 +271,44 @@ extern double** dmat(int m,int n)
     return A;
 }
 /* svd decomposition---------------------------------------------------------*/
-extern void svd(const double *A,int m,int n,double *U,double *W,double *V)
+extern int svd(const double *A,int m,int n,double *U,double *W,double *V)
 {
-    int i,j;
+#ifdef LAPACK
+    register int info=-1,lwork=-1,lda=m,ldu=m,ldvt=n,i,j;
+    double *s,*u,*vt,*a;
+    double wkopt;
+    double* work;
+
+    s=mat(1,MAX(m,n)); u=mat(1,m*m); vt=mat(1,n*n);
+    a=mat(m,n);
+
+    matcpy(a,A,m,n);
+
+    dgesvd_("All","All",&m,&n,a,&lda,s,u,&ldu,vt,&ldvt,&wkopt,&lwork,&info);
+    lwork=(int)wkopt;
+    work =(double*)malloc(lwork*sizeof(double));
+    dgesvd_("All","All",&m,&n,a,&lda,s,u,&ldu,vt,&ldvt,work,&lwork,&info);
+    if (info>0) {
+        trace(3,"the algorithm computing SVD failed to converge.\n");
+
+        free((void*)work);
+        free(a); free(u); free(vt); free(s);
+        return 0;
+    }
+    for (i=0;i<m;i++) {
+        for (j=0;j<MIN(m,n);j++) U[i+j*m]=u[i+j*ldu];
+    }
+    for (i=0;i<n;i++) for (j=0;j<n;j++) V[i+j*n]=vt[j+i*ldvt];
+    for (i=0;i<MIN(m,n);i++) W[i]=s[i];
+
+    free(work);
+    free(a); free(u); free(vt); free(s);
+    return 1;
+#else
+    register int i,j;
     double **a,**v,**u,*w;
 
-    trace(3,"svd:\n");
-
-    w=mat(1,n);
+    w=mat(1,MAX(m,n));
     a=dmat(m,n); v=dmat(n,n); u=dmat(m,m);
 
     mat2dmat(A,a,m,n); svdcmp(a,m,n,w,v);
@@ -289,5 +328,6 @@ extern void svd(const double *A,int m,int n,double *U,double *W,double *V)
     free(w);
     free(a[0]); free(a);
     free(v[0]); free(v);
-    free(u[0]); free(u);
+    free(u[0]); free(u); return 1;
+#endif
 }
