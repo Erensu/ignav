@@ -511,7 +511,7 @@ extern void insinitx(insstate_t *ins,double xi,double var,int i)
 static int selsat(const obsd_t *obs, double *azel, int nu, int nr,
                   const prcopt_t *opt, int *sat, int *iu, int *ir)
 {
-    int i,j,k=0;
+    register int i,j,k=0;
     
     trace(3,"selsat  : nu=%d nr=%d\n",nu,nr);
     
@@ -529,7 +529,7 @@ static int selsat(const obsd_t *obs, double *azel, int nu, int nr,
 static void udpos(rtk_t *rtk, double tt)
 {
     double *F,*P,*FP,*x,*xp,pos[3],Q[9]={0},Qv[9],var=0.0;
-    int i,j,*ix,nx;
+    register int i,j,*ix,nx;
     
     trace(3,"udpos   : tt=%.3f\n",tt);
     
@@ -617,7 +617,7 @@ static void udpos(rtk_t *rtk, double tt)
 static void udion(rtk_t *rtk, double tt, double bl, const int *sat, int ns)
 {
     double el,fact,*x=NULL;
-    int i,j,tc=0;
+    register int i,j,tc=0;
     insstate_t *ins=NULL;
     
     trace(3,"udion   : tt=%.3f bl=%.0f ns=%d\n",tt,bl,ns);
@@ -653,7 +653,7 @@ static void udion(rtk_t *rtk, double tt, double bl, const int *sat, int ns)
 /* temporal update of tropospheric parameters --------------------------------*/
 static void udtrop(rtk_t *rtk, double tt, double bl)
 {
-    int i,j,k,tc=0,n;
+    register int i,j,k,tc=0,n;
     double *x=NULL,*P=NULL;
     insstate_t *ins=NULL;
     
@@ -694,7 +694,7 @@ static void udtrop(rtk_t *rtk, double tt, double bl)
 /* temporal update of receiver h/w biases ------------------------------------*/
 static void udrcvbias(rtk_t *rtk, double tt)
 {
-    int i,j,tc,nx;
+    register int i,j,tc,nx;
     double *x,*P;
     
     trace(3,"udrcvbias: tt=%.3f\n",tt);
@@ -727,7 +727,7 @@ static void udrcvbias(rtk_t *rtk, double tt)
 /* carrier-phase bias correction by fcb --------------------------------------*/
 extern void corr_phase_bias_fcb(obsd_t *obs, int n, const nav_t *nav)
 {
-    int i,j,k;
+    register int i,j,k;
 
     for (i=0;i<nav->nf;i++) {
         if (timediff(nav->fcb[i].te,obs[0].time)<-1E-3) continue;
@@ -745,7 +745,7 @@ extern void corr_phase_bias_fcb(obsd_t *obs, int n, const nav_t *nav)
 extern void corr_phase_bias_ssr(obsd_t *obs, int n, const nav_t *nav)
 {
     double lam;
-    int i,j,code;
+    register int i,j,code;
 
     for (i=0;i<n;i++) for (j=0;j<NFREQ;j++) {
             if (!(code=obs[i].code[j])) continue;
@@ -759,7 +759,7 @@ extern void corr_phase_bias_ssr(obsd_t *obs, int n, const nav_t *nav)
 static void detslp_ll(rtk_t *rtk, const obsd_t *obs, int i, int rcv)
 {
     unsigned int slip,LLI;
-    int f,sat=obs[i].sat;
+    register int f,sat=obs[i].sat;
     
     trace(3,"detslp_ll: i=%d rcv=%d\n",i,rcv);
     
@@ -807,7 +807,7 @@ static void detslp_ll(rtk_t *rtk, const obsd_t *obs, int i, int rcv)
 static void detslp_gf_L1L2(rtk_t *rtk, const obsd_t *obs, int i, int j,
                            const nav_t *nav)
 {
-    int sat=obs[i].sat;
+    register int sat=obs[i].sat;
     double g0,g1;
     
     trace(3,"detslp_gf_L1L2: i=%d j=%d\n",i,j);
@@ -826,7 +826,7 @@ static void detslp_gf_L1L2(rtk_t *rtk, const obsd_t *obs, int i, int j,
 static void detslp_gf_L1L5(rtk_t *rtk, const obsd_t *obs, int i, int j,
                            const nav_t *nav)
 {
-    int sat=obs[i].sat;
+    register int sat=obs[i].sat;
     double g0,g1;
     
     trace(3,"detslp_gf_L1L5: i=%d j=%d\n",i,j);
@@ -846,7 +846,7 @@ static double mwmeas(const obsd_t *obs, int iu, int ir, const nav_t *nav)
 {
     const double *lam=nav->lam[obs->sat-1];
     double l1,l2,p1,p2;
-    int i=(satsys(obs->sat,NULL)&(SYS_GAL|SYS_SBS))?2:1;
+    register int i=(satsys(obs->sat,NULL)&(SYS_GAL|SYS_SBS))?2:1;
 
     if (obs[ir].L[0]==0.0||obs[iu].L[0]==0.0) return 0.0;
     if (obs[ir].P[i]==0.0||obs[iu].P[i]==0.0) return 0.0;
@@ -864,7 +864,7 @@ static void detslp_mw(rtk_t *rtk, const obsd_t *obs, int iu, int ir,
                       int sat,const nav_t *nav)
 {
     double w0,w1;
-    int j;
+    register int j;
 
     trace(3,"detslp_mw:\n");
 
@@ -887,7 +887,7 @@ static void udbias(rtk_t *rtk, double tt, const obsd_t *obs, const int *sat,
 {
     double cp,pr,cp1,cp2,pr1,pr2,*bias,lami,lam1,lam2,C1,C2;
     double *x,*P,eps=rtk->opt.eps;
-    int i,j,f,slip,reset,nf=NF(&rtk->opt),nx,tc=0,ib;
+    register int i,j,f,slip,reset,nf=NF(&rtk->opt),nx,tc=0,ib;
     
     trace(3,"udbias  : tt=%.3f ns=%d\n",tt,ns);
 
@@ -1005,7 +1005,7 @@ static void insudsta(rtk_t *rtk,double tt)
 /* reset estimated filter if counts of solution valid fail is many-------------*/
 static void udreset(rtk_t *rtk)
 {
-    int i,j,f;
+    register int i,j,f;
     if (rtk->opt.mode<=PMODE_FIXED) {
         for (i=0;i<3;i++) initx(rtk,rtk->x[i],VAR_POS,i);
         if (rtk->opt.dynamics) {
@@ -1026,7 +1026,7 @@ static void udreset(rtk_t *rtk)
 static void udstate(rtk_t *rtk, const obsd_t *obs, const int *sat,
                     const int *iu, const int *ir, int ns, const nav_t *nav)
 {
-    int tc;
+    register int tc;
     double tt=rtk->tt,bl,dr[3];
     
     trace(3,"udstate : ns=%d\n",ns);
@@ -1067,7 +1067,7 @@ static void zdres_sat(int base, double r, const obsd_t *obs, const nav_t *nav,
 {
     const double *lam=nav->lam[obs->sat-1];
     double f1,f2,C1,C2,dant_if;
-    int i,nf=NF(opt);
+    register int i,nf=NF(opt);
     
     if (opt->ionoopt==IONOOPT_IFLC) { /* iono-free linear combination */
         if (lam[0]==0.0||lam[1]==0.0) return;
@@ -1110,7 +1110,7 @@ static int zdres(int base, const obsd_t *obs, int n, const double *rs,
 {
     double r,rr_[3],pos[3],dant[NFREQ]={0},disp[3];
     double zhd,zazel[]={0.0,90.0*D2R};
-    int i,nf=NF(opt);
+    register int i,nf=NF(opt);
     
     trace(3,"zdres   : n=%d\n",n);
     
@@ -1178,7 +1178,7 @@ static int chkfrq(const obsd_t *obs,const prcopt_t *opt)
 static void ddcov(const int *nb, int n, const double *Ri, const double *Rj,
                   int nv, double *R)
 {
-    int i,j,k=0,b;
+    register int i,j,k=0,b;
     
     trace(3,"ddcov   : n=%d\n",n);
     
@@ -1197,7 +1197,7 @@ static int constbl(rtk_t *rtk, const double *x, const double *P, double *v,
 {
     const double thres=0.1; /* threshold for nonliearity (v.2.3.0) */
     double xb[3],b[3],bb,var=0.0,rr[3];
-    int i,nx,tc=0,ix;
+    register int i,nx,tc=0,ix;
      
     trace(3,"constbl : \n");
 
@@ -1254,7 +1254,7 @@ static double prectrop(gtime_t time, const double *pos, int r,
                        double *dtdx)
 {
     double m_w=0.0,cotz,grad_n,grad_e;
-    int i,flag=0;
+    register int i,flag=0;
 
     flag=opt->mode==PMODE_INS_TGNSS?1:0;
     flag?i=xiTr((&opt->insopt),r):i=IT(r,opt);
@@ -1336,7 +1336,7 @@ static void jacob_dd_da(const insstate_t *ins,const double *ei,const double *ej,
 #if NOINSJACO
     return; /* no add jacobians */
 #else
-    int i;
+    register int i;
     double sl[3],T[9];
 
     matmul("NN",3,1,3,1.0,ins->Cbe,ins->lever,0.0,sl);
@@ -1363,7 +1363,7 @@ static void jacob_dd_dl(const insstate_t *ins,const double *ei,const double *ej,
 /* check whether it is new double difference satellite-----------------------*/
 static int chknews(const rtk_t *rtk,int sat1,int sat2,int freq)
 {
-    int i; for (i=0;i<rtk->ns;i++) {
+    register int i; for (i=0;i<rtk->ns;i++) {
         if (sat1==rtk->sat[i].sat1&&
             sat2==rtk->sat[i].sat2&&
             freq==rtk->sat[i].f) {
@@ -1385,8 +1385,8 @@ static int ddres(rtk_t *rtk, const nav_t *nav, const obsd_t *obs, double dt,
     double bl,dr[3],posu[3],posr[3],didxi,didxj,*im,*vc;
     double *tropr,*tropu,*dtdxr,*dtdxu,*Ri,*Rj,lami,lamj,fi,fj,df,*Hi=NULL,rr[3];
     double dp[3]={0},da[3]={0},dl[3]={0},S[9],dap[3];
-    int i,j,k,m,f,ff,nv=0,nb[NFREQ*4*2+2]={0},b=0,sysi,sysj,nf=NF(opt),tc,nx;
-    int ii,ij,flag=0;
+    register int i,j,k,m,f,ff,nv=0,nb[NFREQ*4*2+2]={0},b=0,sysi,sysj,nf=NF(opt),tc,nx;
+    register int ii,ij,flag=0;
 
     trace(3,"ddres   : dt=%.1f ns=%d\n",dt,ns);
     trace(3,"base position=%.3lf %.3lf,%.3lf\n",rtk->rb[0],rtk->rb[1],rtk->rb[2]);
@@ -1639,7 +1639,7 @@ static double intpres(gtime_t time, const obsd_t *obs, int n, const nav_t *nav,
     static int nb=0,svh[MAXOBS*2];
     prcopt_t *opt=&rtk->opt;
     double tt=timediff(time,obs[0].time),ttb,*p,*q;
-    int i,j,k,nf=NF(opt);
+    register int i,j,k,nf=NF(opt);
     
     trace(3,"intpres : n=%d tt=%.1f\n",n,tt);
     
@@ -1669,7 +1669,7 @@ static double intpres(gtime_t time, const obsd_t *obs, int n, const nav_t *nav,
 static int ddmat_WL(int na,int nb,const ddsat_t *ddsat,double *D,
                     int *index,ddsat_t *wlsat)
 {
-    int i,j,k,*flag;
+    register int i,j,k,*flag;
 
     trace(3,"ddmat_WL:\n");
 
@@ -1702,8 +1702,8 @@ static int ddmat_WL(int na,int nb,const ddsat_t *ddsat,double *D,
 /* single to double-difference transformation matrix (D') --------------------*/
 static int ddmat(rtk_t *rtk, double *D,ddsat_t *ddsat,const int *vflg,int nv)
 {
-    int i,j,k,m,f,tc,sat1,sat2;
-    int nb=0,nx=rtk->nx,na=rtk->na;
+    register int i,j,k,m,f,tc,sat1,sat2;
+    register int nb=0,nx=rtk->nx,na=rtk->na;
     double *x=rtk->x;
     
     trace(3,"ddmat   :\n");
@@ -1777,8 +1777,8 @@ static int ddmat(rtk_t *rtk, double *D,ddsat_t *ddsat,const int *vflg,int nv)
 static void restamb(rtk_t *rtk, const double *bias, ddsat_t *ddsat,
                     int nb, double *xa)
 {
-    int i,f;
-    int sat1,sat2,ib1,ib2,tc,nx,na;
+    register int i,f;
+    register int sat1,sat2,ib1,ib2,tc,nx,na;
     
     trace(3,"restamb :nb=%d\n",nb);
 
@@ -1812,9 +1812,9 @@ static void holdamb(rtk_t *rtk, insstate_t *ins, const double *xa,
                     const ddsat_t *ddsat,int ns)
 {
     double *v,*H,*R,*x,*P;
-    int i,f,info;
-    int nb,nv=0;
-    int sat1,sat2,ib1,ib2,tc,nx;
+    register int i,f,info;
+    register int nb,nv=0;
+    register int sat1,sat2,ib1,ib2,tc,nx;
     
     trace(3,"holdamb :ns=%d\n",ns);
 
@@ -1879,7 +1879,7 @@ static void holdamb(rtk_t *rtk, insstate_t *ins, const double *xa,
 static int resamb_WL(rtk_t *rtk, double *Qy, double *y, int ny, int *index,
                      const double *D, int nw, ddsat_t *wlsat)
 {
-    int i,k,info=0,na,tc;
+    register int i,k,info=0,na,tc;
     double *Qw,*wl,*b,*v,*R,*r,*H,s[2];
 
     trace(3,"resamb_WL:\n");
@@ -1962,7 +1962,7 @@ static int resamb_LAMBDA(rtk_t *rtk, double *bias, double *xa, ddsat_t *ddsat,
     insstate_t *ins=&rtk->ins;
     insopt_t *insopt=&rtk->opt.insopt;
     ddsat_t wlsat[MAXSAT];
-    int i,j,ny,nb,info,nx=rtk->nx,na=rtk->na,*index,nw,tc;
+    register int i,j,ny,nb,info,nx=rtk->nx,na=rtk->na,*index,nw,tc;
     double *D,*DP,*y,*Qy,*b,*db,*Qb,*Qab,*QQ,s[2];
     double *DD,*x,*P,*Pa,*xb;
     
@@ -2097,7 +2097,7 @@ static int valpos(rtk_t *rtk, const double *v, const double *R, const int *vflg,
     prcopt_t *opt=&rtk->opt;
     double vv=0.0;
     double fact=thres*thres;
-    int i,stat=1,sat1,sat2,type,freq,np,n,flag=0;
+    register int i,stat=1,sat1,sat2,type,freq,np,n,flag=0;
     const char *stype;
     
     trace(3,"valpos  : nv=%d thres=%.1f\n",nv,thres);
@@ -2142,7 +2142,7 @@ static int valpos(rtk_t *rtk, const double *v, const double *R, const int *vflg,
 static int valins(const prcopt_t *opt,const double *x)
 {
     const insopt_t *insopt=&opt->insopt;
-    int nba=0,iba=0,nbg=0,ibg=0;
+    register int nba=0,iba=0,nbg=0,ibg=0;
 
     trace(3,"valins:\n");
 
@@ -2170,12 +2170,12 @@ static int relpos(rtk_t *rtk, const obsd_t *obs, int nu, int nr,const nav_t *nav
     double *Ri,*Rj,bl,dr[3]={0};
     double *rs,*dts,*var,*y,*e,*azel;
     double *v,*H,*R,*xp,*Pp,*xa,*bias,dt,*x,*P,rr[3],*Pa;
-    int i,j,k,f,n=nu+nr,ns,ny,nv=0,sat[MAXSAT],iu[MAXSAT],ir[MAXSAT],niter,nx,na;
-    int info,vflg[MAXOBS*NFREQ*2+1],svh[MAXOBS*2];
-    int stat=rtk->opt.mode<=PMODE_DGPS?SOLQ_DGPS:SOLQ_FLOAT;
-    int nf=opt->ionoopt==IONOOPT_IFLC?1:opt->nf,tc;
-    int ix,iy,iz,ivx,ivy,ivz,namb=0;
-    int nb[NFREQ*4*2+2]={0},b=0,m;
+    register int i,j,k,f,n=nu+nr,ns,ny,nv=0,sat[MAXSAT],iu[MAXSAT],ir[MAXSAT],niter,nx,na;
+    register int info,vflg[MAXOBS*NFREQ*2+1],svh[MAXOBS*2];
+    register int stat=rtk->opt.mode<=PMODE_DGPS?SOLQ_DGPS:SOLQ_FLOAT;
+    register int nf=opt->ionoopt==IONOOPT_IFLC?1:opt->nf,tc;
+    register int ix,iy,iz,ivx,ivy,ivz,namb=0;
+    register int nb[NFREQ*4*2+2]={0},b=0,m;
 
     /* tc=0: common rtk position mode
      * tc=1: tightly-coupled mode
@@ -2535,7 +2535,7 @@ extern void rtkinit(rtk_t *rtk, const prcopt_t *opt)
     sol_t sol0={{0}};
     ambc_t ambc0={{{0}}};
     ssat_t ssat0={0};
-    int i,j;
+    register int i,j;
     
     trace(3,"rtkinit :\n");
     
@@ -2684,8 +2684,8 @@ extern int rtkpos(rtk_t *rtk, const obsd_t *obs, int n, const nav_t *nav)
     sol_t solb={{0}};
     gtime_t time;
     static obsd_t obsd[MAXOBS];
-    int i,j,nu,nr,stat=0,tcs=0,tcp=0;
-    int fi=0,fj=1,fk=2;
+    register int i,j,nu,nr,stat=0,tcs=0,tcp=0;
+    register int fi=0,fj=1,fk=2;
     char msg[128]="";
     
     trace(3,"rtkpos  : time=%s n=%d\n",time_str(obs[0].time,3),n);

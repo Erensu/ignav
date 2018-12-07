@@ -566,6 +566,12 @@ extern int updateins(const insopt_t *insopt,insstate_t *ins,const imud_t *data)
     savepins(ins,data);
 
     if ((dt=timediff(data->time,ins->time))>MAXDT||fabs(dt)<1E-6) {
+
+        /* update time information */
+        ins->dt=timediff(data->time,ins->time);
+        ins->ptime=ins->time;
+        ins->time =data->time;
+
         trace(2,"time difference too large: %.0fs\n",dt);
         return 0;
     }
@@ -1167,6 +1173,12 @@ extern int updateinsn(const insopt_t *insopt,insstate_t *ins,const imud_t *data)
     savepins(ins,data);
 
     if ((dt=timediff(data->time,ins->time))>MAXDT||fabs(dt)<1E-6) {
+
+        /* update time information */
+        ins->dt=timediff(data->time,ins->time);
+        ins->ptime=ins->time;
+        ins->time =data->time;
+
         trace(2,"time difference too large: %.0fs\n",dt);
         return 0;
     }
