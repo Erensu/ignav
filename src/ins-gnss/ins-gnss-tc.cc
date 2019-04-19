@@ -162,8 +162,8 @@ extern int tcigpos(const prcopt_t *opt,const obsd_t *obs,int n,const nav_t *nav,
 #if CHKNUMERIC
     /* check numeric of estimate state */
     for (i=0;i<3;i++) {
-        if (isnan(ins->re[i])||isnan(ins->ve[i])||
-            isinf(ins->re[i])||isinf(ins->ve[i])) {
+        if (isnan(ins->re[i])||isnan(ins->ve[i])||isnan(ins->ae[i])||
+            isinf(ins->re[i])||isinf(ins->ve[i])||isinf(ins->ae[i])) {
             fprintf(stderr,"check numeric error: nan or inf\n");
             return 0;
         }

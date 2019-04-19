@@ -549,6 +549,7 @@ static int startsvr(vt_t *vt)
     if (filopt.bdsfile) {
         readnavf(&svr.nav,filopt.bdsfile);
     }
+    uniqnav(&svr.nav);
     for (i=0;*rcvopts[i].name;i++) modflgr[i]=0;
     for (i=0;*sysopts[i].name;i++) modflgs[i]=0;
     

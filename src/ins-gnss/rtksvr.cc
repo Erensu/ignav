@@ -43,7 +43,7 @@
 #define DTTOLM          0.1        /* threshold of rover and base observation data */
 #define REALTIME        0          /* real time process rover observation data */
 #define MAXTIMEDIFF     0.5        /* max time difference for suspend input stream */
-#define OUTSOLFRQ       100        /* frequency of output ins solutions */
+#define OUTSOLFRQ       1          /* frequency of output ins solutions */
 
 #define NS(i,j,max)     ((((j)-1)%(max)-(i))<0?(((j)-1)%(max)-(i)+(max)):(((j)-1)%(max)-(i)))
 #define NE(i,j,max)     MAX(0,(((i)-(j))<0?((i)-(j)+(max)):((i)-(j))))

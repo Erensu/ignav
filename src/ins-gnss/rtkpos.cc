@@ -899,7 +899,8 @@ static void udbias(rtk_t *rtk, double tt, const obsd_t *obs, const int *sat,
     for (i=0;i<ns;i++) {
         
         /* detect cycle slip by LLI */
-        for (f=0;f<rtk->opt.nf;f++) rtk->ssat[sat[i]-1].slip[f]&=0xFC;
+        for (f=0;f<rtk->opt.nf;f++) rtk->ssat[sat[i]-1].slip[f]=0;
+#if 1
         detslp_ll(rtk,obs,iu[i],1);
         detslp_ll(rtk,obs,ir[i],2);
         
@@ -909,7 +910,7 @@ static void udbias(rtk_t *rtk, double tt, const obsd_t *obs, const int *sat,
 
         /* detect cycle slip by MW-measurement */
         detslp_mw(rtk,obs,iu[i],ir[i],sat[i],nav);
-        
+#endif
         /* update half-cycle valid flag */
         for (f=0;f<nf;f++) {
             rtk->ssat[sat[i]-1].half[f]=(unsigned char)!((obs[iu[i]].LLI[f]&2)||(obs[ir[i]].LLI[f]&2));
