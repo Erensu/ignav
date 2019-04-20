@@ -505,11 +505,6 @@ static void camdp2insdp(const double *dpc,const double *Cbc,const double *lbc,co
     for (i=0;i<3;i++) dp[i]=dpc[i]-dp1[i]-dp2[i];
     matmul("TN",3,1,3,1.0,Cbc,dp,0.0,dpi);
 }
-#if 1
-static FILE* fp_n=fopen("./out_nf","w");
-static FILE* fp_v=fopen("./out_vf","w");
-static FILE* fp_t=fopen("./out_trk_vo","w");
-#endif
 /* update track data-----------------------------------------------------------*/
 static int updatecameratrack(insstate_t *ins,const insopt_t *opt,const img_t *img,
                              vostate_t *vo)
@@ -533,33 +528,6 @@ static int updatecameratrack(insstate_t *ins,const insopt_t *opt,const img_t *im
 #else
     /* estimate mono-camera motion */
     vo->status=estmotion(&matchs.mp_bucket,&opt->voopt,ins,vo->dT,&vo->ratio);
-#if 1
-    fprintf(fp_n,"%10.4lf  %d  %6.4lf %d\n",time2gpst(img->time,NULL),matchs.mp_bucket.n,vo->ratio,vo->status);
-
-    double phi[3],C[9],t[3],phib[3],dTi[16],dpi[3],dCz[9],dphi[3];
-
-    matcpy(dTi,vo->dT,4,4);
-    matinv(dTi,4);
-
-    tf2rt(dTi,C,t);
-    matmul33("TNN",ins->Cbc,C,ins->Cbc,3,3,3,3,dCz);
-
-    so3_log(C,dphi,NULL);
-    so3_log(dCz,phi,NULL);
-    matmul("TN",3,1,3,1.0,ins->Cbc,phi,0.0,phib);
-
-    camdp2insdp(t,ins->Cbc,ins->lbc,C,dpi);
-
-    fprintf(fp_v,"%10.4lf  %10.4lf  %10.4lf  %10.4lf  %10.4lf  %10.4lf  %10.4lf  %10.4lf %10.4lf  %10.4lf  %10.4lf %10.4lf  %10.4lf  %10.4lf\n",
-            time2gpst(matchs.Ip.time,NULL),
-            time2gpst(matchs.Ic.time,NULL),
-            phib[0],phib[1],phib[2],
-            dpi[0],dpi[1],dpi[2],
-            dphi[0],dphi[1],dphi[2],t[0],t[1],t[2]);
-
-    fflush(fp_n);
-    fflush(fp_v);
-#endif
 #endif
     if (!vo->status||vo->ratio<THRES_RATIO) {
         trace(2,"estimate motion fail\n");
@@ -569,15 +537,6 @@ static int updatecameratrack(insstate_t *ins,const insopt_t *opt,const img_t *im
     }
     /* update camera pose */
     updatecamera(ins,opt,vo->dT,img->time);
-#if 1
-    double dr[3],pos[3],enu[3];
-    for (int i=0;i<3;i++) dr[i]=vo->rc[i]-vo->rc0[i];
-    ecef2pos(vo->rc0,pos);
-    ecef2enu(pos,dr,enu);
-
-    fprintf(fp_t,"%10.6lf %10.6lf %10.6lf %10.6lf\n",time2gpst(vo->time,NULL),enu[0],enu[1],enu[2]);
-    fflush(fp_t);
-#endif
     return 1;
 }
 /* jacobians of bg------------------------------------------------------------*/
