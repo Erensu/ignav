@@ -1621,14 +1621,11 @@ static int ddres(rtk_t *rtk, const nav_t *nav, const obsd_t *obs, double dt,
         /* iteration for detect outliers */
         for (m=0,flag=1;m<ns;m++,flag=1) {
             for (l=0,i=0;i<ns;i++) {
-                sysi=rtk->ssat[sat[i]-1].sys;
-
-                /* invalid satellite */
                 if (!rtk->ssat[sat[i]-1].vsat[0]) continue;
 
                 /* exclude reference satellite */
-                if (rtk->refsat[sysind(sysi)][0]==sat[i]) continue;
-                if (rtk->refsat[sysind(sysi)][1]==sat[i]) continue;
+                if (rtk->refsat[sysind(rtk->ssat[sat[i]-1].sys)][0]==sat[i]) continue;
+                if (rtk->refsat[sysind(rtk->ssat[sat[i]-1].sys)][1]==sat[i]) continue;
 
                 /* L1-L2 */
                 j=rtk->ssat[sat[i]-1].index[0];
