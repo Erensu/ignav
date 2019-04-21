@@ -28,7 +28,7 @@
 *           2014/05/26 1.13 support beidou and galileo
 *                           add output of gal-gps and bds-gps time offset
 *           2014/05/28 1.14 fix bug on memory exception with many sys and freq
-*           2014/08/26 1.15 add functino to swap sol-stat file with keywords
+*           2014/08/26 1.15 add function to swap sol-stat file with keywords
 *           2014/10/21 1.16 fix bug on beidou amb-res with pos2-bdsarmode=0
 *           2014/11/08 1.17 fix bug on ar-degradation by unhealthy satellites
 *           2015/03/23 1.18 residuals referenced to reference satellite
@@ -59,7 +59,7 @@
 #define THRES_HOLDAMB 3.0      /* threshold of hold ambiguity */
 #define THRES_MW_JUMP 5.0      /* threshold of MW cycle slip detect*/
 #define MINFAILC      10       /* min counts of solution valid fail */
-#define UPDNEWSAT     0        /* update new satellites after update last epoch satellites */
+#define UPDNEWSAT     1        /* update new satellites after update last epoch satellites */
 #define NOINSJACO     0        /* no add jacobians of ins states to ekf filter */
 #define DEGRADETC     1        /* degrade rtk-tc mode if update fail */
 

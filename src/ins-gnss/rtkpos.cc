@@ -62,7 +62,8 @@
 #define UPDNEWSAT     0        /* update new satellites after update last epoch satellites */
 #define NOINSJACO     0        /* no add jacobians of ins states to ekf filter */
 #define DEGRADETC     1        /* degrade rtk-tc mode if update fail */
-
+#define DETECT_OUTLIER 1       /* detect outlier for double-differenced measurement data */
+#define THRES_L1L2RES 0.005    /* threshold of L1/L2 double difference residual for detecting outliers*/
 #define TTOL_MOVEB  (1.0+2*DTTOL)
                                /* time sync tolerance for moving-baseline (s) */
 
@@ -1608,7 +1609,92 @@ static int ddres(rtk_t *rtk, const nav_t *nav, const obsd_t *obs, double dt,
         b++;
     }
     /* end of system loop */
+#if DETECT_OUTLIER
+    static const double r0=re_norm(0.95),r1=re_norm(0.99);
+    double s0;
 
+    /* detect outlier by L1/L2 phase double difference residual */
+    if (nf>=2&&opt->mode>PMODE_DGPS) {
+        double *vv=mat(ns,1),avv=0.0,v0=0.0;
+        int l,*s=imat(ns,1);
+
+        /* iteration for detect outliers */
+        for (m=0,flag=1;m<ns;m++,flag=1) {
+            for (l=0,i=0;i<ns;i++) {
+                sysi=rtk->ssat[sat[i]-1].sys;
+
+                /* invalid satellite */
+                if (!rtk->ssat[sat[i]-1].vsat[0]) continue;
+
+                /* exclude reference satellite */
+                if (rtk->refsat[sysind(sysi)][0]==sat[i]) continue;
+                if (rtk->refsat[sysind(sysi)][1]==sat[i]) continue;
+
+                /* L1-L2 */
+                j=rtk->ssat[sat[i]-1].index[0];
+                k=rtk->ssat[sat[i]-1].index[1];
+                vv[l]=v[j]-v[k];
+
+                /* index of dd-res */
+                s[l++]=i;
+            }
+            /* outliers detect */
+            for (i=0;i<l;i++) avv+=vv[i]; avv/=l;
+            for (i=0;i<l;i++) vv[i]-=avv;
+
+            /* standard deviation */
+            matmul("NT",1,1,l,1.0/(l-1),vv,vv,0.0,&v0);
+
+            /* chi-square detect outliers */
+            for (i=0;i<l;i++) {
+                if (fabs(v0)>=THRES_L1L2RES&&fabs(vv[i])/SQRT(v0)>=r0) {
+
+                    trace(2,"L1/L2 dd-res detect outlier,sat=%2d\n",sat[s[i]]);
+                    j=rtk->ssat[sat[s[i]]-1].index[0];
+                    k=rtk->ssat[sat[s[i]]-1].index[1];
+
+                    /* disable this satellite */
+                    Rj[j]=Rj[k]=SQR(100.0);
+
+                    for (f=0;f<nf;f++) {
+                        rtk->ssat[sat[s[i]]-1].vsat[f]=0;
+                    }
+                    /* outlier flag */
+                    flag=0;
+                }
+            }
+            if (flag) break;
+        }
+        free(s); free(vv);
+    }
+    /* code double-difference measurement outliers detect */
+    for (s0=0.0,k=0,i=0;i<nv;i++) {
+        if (((vflg[i]>>4)&0xF)==0) continue;
+        vc[k++]=v[i];
+        s0+=v[i];
+    }
+    if (k>2) {
+        s0/=k;
+        for (i=0;i<k;i++) vc[i]-=s0;
+        matmul("NT",1,1,k,1.0/(k-1),vc,vc,0.0,&s0);
+
+        /* outliers detect */
+        for (i=0,k=0;i<nv;i++) {
+            if (((vflg[i]>>4)&0xF)==0) continue;
+            if (fabs(vc[k])/SQRT(s0)>=r1) {
+
+                /* disable this satellite */
+                Rj[i]=SQR(100.0);
+            }
+            else if (fabs(vc[k])/SQRT(s0)>=r0) {
+
+                /* degrade this satellite */
+                Rj[i]=SQR(10.0);
+            }
+            k++;
+        }
+    }
+#endif
     /* baseline length constraint for moving baseline */
     if (opt->mode==PMODE_MOVEB&&constbl(rtk,x,P,v,H,Ri,Rj,nv)) {
         vflg[nv++]=3<<4;
