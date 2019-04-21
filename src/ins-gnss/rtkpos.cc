@@ -62,7 +62,7 @@
 #define UPDNEWSAT     0        /* update new satellites after update last epoch satellites */
 #define NOINSJACO     0        /* no add jacobians of ins states to ekf filter */
 #define DEGRADETC     1        /* degrade rtk-tc mode if update fail */
-#define DETECT_OUTLIER 1       /* detect outlier for double-differenced measurement data */
+#define DETECT_OUTLIER 0       /* detect outlier for double-differenced measurement data */
 #define THRES_L1L2RES 0.005    /* threshold of L1/L2 double difference residual for detecting outliers*/
 #define TTOL_MOVEB  (1.0+2*DTTOL)
                                /* time sync tolerance for moving-baseline (s) */
