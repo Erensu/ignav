@@ -1178,9 +1178,6 @@ static int zdres(int base, const obsd_t *obs, int n, const double *rs,
         zhd=tropmodel(obs[0].time,pos,zazel,0.0);
         r+=tropmapf(obs[i].time,pos,azel+i*2,NULL)*zhd;
 
-        /* gravitational delay correction */
-        r-=gdelaycorr(satsys(obs[i].sat,NULL),rr_,rs+i*6);
-        
         /* receiver antenna phase center correction */
         antmodel(opt->pcvr+index,opt->antdel[index],azel+i*2,opt->posopt[1],
                  dant);
