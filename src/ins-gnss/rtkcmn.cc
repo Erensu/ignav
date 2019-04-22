@@ -4617,6 +4617,45 @@ extern int rtk_uncompress(const char *file, char *uncfile)
     trace(3,"rtk_uncompress: stat=%d\n",stat);
     return stat;
 }
+/*---------------------------------------------------------------------------
+* Name        : gravitationalDelayCorrection
+* Description : Obtains the gravitational delay correction for the effect of
+*               general relativity (red shift) to the GPS signal
+* Parameters  :
+* Name                           |Da|Unit|Description
+* double  *rr                     I  m    Position of the receiver
+* double  *rs                     I  m    Position of the satellite
+* Returned value (double)         O  m    Gravitational delay correction
+*-----------------------------------------------------------------------------*/
+#define MU_GPS   3.9860050E14     /* gravitational constant       */
+#define MU_GLO   3.9860044E14     /* gravitational constant       */
+#define MU_GAL   3.986004418E14   /* earth gravitational constant */
+#define MU_CMP   3.986004418E14   /* earth gravitational constant */
+extern double gdelaycorr(const int sys, const double *rr,const double *rs)
+{
+    double	rm;
+    double	sm;
+    double	distance;
+    double  MU,delay;
+
+    rm=sqrt(rr[0]*rr[0]+rr[1]*rr[1]+rr[2]*rr[2]);
+    sm=sqrt(rs[0]*rs[0]+rs[1]*rs[1]+rs[2]*rs[2]);
+    distance=sqrt((rs[0]-rr[0])*(rs[0]-rr[0])+
+                  (rs[1]-rr[1])*(rs[1]-rr[1])+
+                  (rs[2]-rr[2])*(rs[2]-rr[2]));
+
+    switch (sys) {
+        case SYS_GPS: MU=MU_GPS; break;
+        case SYS_GLO: MU=MU_GLO; break;
+        case SYS_GAL: MU=MU_GAL; break;
+        case SYS_CMP: MU=MU_CMP; break;
+        default:
+            MU=MU_GPS;
+            break;
+    }
+    delay=2.0*MU/(CLIGHT*CLIGHT)*log((sm+rm+distance)/(sm+rm-distance));
+    return delay;
+}
 /* dummy application functions for shared library ----------------------------*/
 #ifdef WIN_DLL
 extern int showmsg(char *format,...) {return 0;}

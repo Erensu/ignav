@@ -1585,7 +1585,7 @@ typedef struct {        /* solution type */
     gtime_t time;       /* time (GPST) */
     double rr[9];       /* position/velocity/acceleration (m|m/s|m/s^2) */
                         /* {x,y,z,vx,vy,vz} or {e,n,u,ve,vn,vu} */
-    float  qr[6];       /* position variance/covariance (m^2) */
+    float  qr[6],pqr[6];/* position variance/covariance (m^2) */
                         /* {c_xx,c_yy,c_zz,c_xy,c_yz,c_zx} or */
                         /* {c_ee,c_nn,c_uu,c_en,c_nu,c_ue} */
     float  qv[6];       /* velocity variance/covariance (m^2/s^2) */
@@ -1596,7 +1596,7 @@ typedef struct {        /* solution type */
     double dtr[6];      /* receiver clock bias to time systems (s) */
     double dtrr;        /* receiver clock drift (m/s) about GPST */
     unsigned char type; /* type (0:xyz-ecef,1:enu-baseline) */
-    unsigned char stat; /* solution status (SOLQ_???) */
+    unsigned char stat,pstat; /* solution status (SOLQ_???) */
     unsigned char ns;   /* number of valid satellites */
     unsigned char ista; /* ins update status (INSS_???) */
     float age;          /* age of differential (s) */
@@ -1906,6 +1906,8 @@ typedef struct {        /* satellite status type */
     double  mw;         /* MW-LC (m) */
     double  phw;        /* phase windup (cycle) */
     gtime_t pt[2][NFREQ]; /* previous carrier-phase time */
+    double  sdi[NFREQ];   /* single-differenced pseudorange observable by INS */
+    double  sdg[NFREQ];   /* single-differenced pseudorange observable by GNSS */
     double  ph[2][NFREQ]; /* previous carrier-phase observable (cycle) */
 } ssat_t;
 
@@ -2564,7 +2566,7 @@ EXPORT int tle_name_read(const char *file, tle_t *tle);
 EXPORT int tle_pos(gtime_t time, const char *name, const char *satno,
                    const char *desig, const tle_t *tle, const erp_t *erp,
                    double *rs);
-
+EXPORT double gdelaycorr(const int sys, const double *rr,const double *rs);
 /* receiver raw data functions -----------------------------------------------*/
 EXPORT unsigned int getbitu(const unsigned char *buff, int pos, int len);
 EXPORT int          getbits(const unsigned char *buff, int pos, int len);

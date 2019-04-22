@@ -196,6 +196,8 @@ extern int tcigpos(const prcopt_t *opt,const obsd_t *obs,int n,const nav_t *nav,
         info=1;
     }
     else {
+        for (i=0;i<6;i++) rtk->sol.pqr[i]=rtk->sol.qr[i];
+        rtk->sol.pstat=rtk->sol.stat;
         ins->gstat=SOLQ_NONE;
         ins->ns=0;
 #if REBOOT
