@@ -1948,6 +1948,7 @@ typedef struct {        /* satellite status type */
     double resp[NFREQ]; /* residuals of pseudorange (m) */
     double resc[NFREQ]; /* residuals of carrier-phase (m) */
     unsigned char vsat[NFREQ]; /* valid satellite flag */
+    unsigned char vsatc[NFREQ];/* valid satellite flag for code */
     unsigned char snr [NFREQ]; /* signal strength (0.25 dBHz) */
     unsigned char fix [NFREQ]; /* ambiguity fix flag (1:fix,2:float,3:hold) */
     unsigned char slip[NFREQ]; /* cycle-slip flag */
@@ -1981,18 +1982,17 @@ typedef struct {        /* ambiguity control type */
 
 typedef struct {        /* double-difference ambiguity type */
     gtime_t time;       /* observation time */
-    gtime_t pt;         /* precious epoch time */
     int sat1,sat2;      /* double-difference ambiguity satellite */
     int f;              /* frequency no. */
     int c;              /* count of fix */
     double ratio;       /* LAMBDA ratio */
-    double b;           /* ambiguity value */
-    double pb;          /* precious epoch ambiguity value */
+    double bias;        /* ambiguity value */
 } ddamb_t;
 
 typedef struct {        /* double-difference satellite */
     int sat1,sat2;      /* double difference satellite no. */
     int f;              /* frequency no. */
+    int flag;
 } ddsat_t;
 
 typedef struct {

@@ -1573,10 +1573,7 @@ extern int filter(double *x, double *P, const double *H, const double *v,
         for (j=0;j<k;j++) P_[i+j*k]=P[ix[i]+ix[j]*n];
         for (j=0;j<m;j++) H_[i+j*k]=H[ix[i]+j*n];
     }
-    trace(3,"P_(0)=\n"); tracemat(3,P_,k,k,12,5);
-
     info=filter_(x_,P_,H_,v,R,k,m,xp_,Pp_);
-    trace(3,"P_=(1)\n"); tracemat(3,Pp_,k,k,12,5);
 
     if (!info) for (i=0;i<k;i++) {
         x[ix[i]]=xp_[i];
