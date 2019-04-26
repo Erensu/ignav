@@ -2019,6 +2019,7 @@ typedef struct {        /* RTK control/result type */
     ssat_t ssat[MAXSAT];         /* satellite status */
     insstate_t ins;              /* ins states */
     amb_t bias;                  /* double-difference ambiguity list */
+    amb_t wlbias;                /* WL double-difference ambiguity list */
     ddsat_t sat[MAXSAT];         /* double difference satellite list */
 } rtk_t;
 
