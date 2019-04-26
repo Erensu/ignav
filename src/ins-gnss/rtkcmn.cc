@@ -188,7 +188,7 @@ const prcopt_t prcopt_default={ /* defaults processing options */
     PMODE_KINEMA,0,2,SYS_GPS,   /* mode,soltype,nf,navsys */
     15.0*D2R,{{0,0}},           /* elmin,snrmask */
     0,1,1,1,                    /* sateph,modear,glomodear,bdsmodear */
-    5,0,1,1,                    /* maxout,minlock,minfix,armaxiter */
+    5,0,1,1,1,                  /* maxout,minlock,minfix,minfixwl,armaxiter */
     0,0,0,0,                    /* estion,esttrop,dynamics,tidecorr */
     1,0,0,0,0,                  /* niter,codesmooth,intpref,sbascorr,sbassatsel */
     0,0,                        /* rovpos,refpos */

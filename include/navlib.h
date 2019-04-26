@@ -1730,6 +1730,7 @@ typedef struct {        /* processing options type */
     int maxout;         /* obs outage count to reset bias */
     int minlock;        /* min lock count to fix ambiguity */
     int minfix;         /* min fix count to hold ambiguity */
+    int minfixwl;       /* min fix count to hold WL ambiguity */
     int armaxiter;      /* max iteration to resolve ambiguity */
     int ionoopt;        /* ionosphere option (IONOOPT_???) */
     int tropopt;        /* troposphere option (TROPOPT_???) */
@@ -1950,6 +1951,7 @@ typedef struct {        /* RTK control/result type */
     double *xa,*Pa;     /* fixed states and their covariance */
     int nx,na;          /* number of float states/fixed states */
     int nfix;           /* number of continuous fixes of ambiguity */
+    int nfixwl;         /* number of continuous fixes of WL ambiguity */
     int neb;            /* bytes in error message buffer */
     int ns;             /* number of double difference satellites */
     int refsat[NUMSYS][2*NFREQ]; /* reference satellite of double-difference residuals* (0:gps/qzs/sbs,1:glo,2:gal,3:bds) */
@@ -1960,6 +1962,7 @@ typedef struct {        /* RTK control/result type */
     ssat_t ssat[MAXSAT];         /* satellite status */
     insstate_t ins;              /* ins states */
     amb_t bias;                  /* double-difference ambiguity list */
+    amb_t wlbias;                /* WL double-difference ambiguity list */
     ddsat_t sat[MAXSAT];         /* double difference satellite list */
 } rtk_t;
 

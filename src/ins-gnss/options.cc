@@ -99,6 +99,7 @@ EXPORT opt_t sysopts[]={
     {"pos2-arlockcnt",  0,  (void *)&prcopt_.minlock,    ""     },
     {"pos2-arelmask",   1,  (void *)&elmaskar_,          "deg"  },
     {"pos2-arminfix",   0,  (void *)&prcopt_.minfix,     ""     },
+    {"pos2-arminfixwl", 0,  (void *)&prcopt_.minfixwl,   ""     },
     {"pos2-armaxiter",  0,  (void *)&prcopt_.armaxiter,  ""     },
     {"pos2-elmaskhold", 1,  (void *)&elmaskhold_,        "deg"  },
     {"pos2-aroutcnt",   0,  (void *)&prcopt_.maxout,     ""     },

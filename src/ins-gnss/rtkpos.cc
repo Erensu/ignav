@@ -1813,7 +1813,6 @@ static int ddmat_WL(int na,int nb,const ddsat_t *ddsat,double *D,
 
         D[i+(k+na)*nb]=1.0;
         for (j=0;j<nb;j++) {
-
             if (flag[j]&&i!=j
                 &&ddsat[j].sat1==ddsat[i].sat1
                 &&ddsat[j].sat2==ddsat[i].sat2
@@ -1825,7 +1824,8 @@ static int ddmat_WL(int na,int nb,const ddsat_t *ddsat,double *D,
                 wlsat[k].f=0;
 
                 index[2*k+0]=i; index[2*k+1]=j;
-                flag[i]=flag[j]=0; k++;
+                flag[i]=flag[j]=0;
+                k++;
             }
         }
     }
@@ -2061,52 +2061,113 @@ static void holdamb(rtk_t *rtk, insstate_t *ins, const double *xa,const ddsat_t 
     }
     free(v); free(H);
 }
+/* store WL ambiguity---------------------------------------------------------*/
+static int storeambwl(rtk_t *rtk, const ddsat_t *ddsat, int nw,const double *bias)
+{
+    ddamb_t *amb=NULL,amb0={0};
+    int i,j;
+
+    trace(3,"storeambwl: nb=%d\n",nw);
+
+    /* update double-difference ambiguity list */
+    for (j=0,i=0;i<nw;i++) {
+        if ((amb=getddamb(&rtk->wlbias,ddsat[i].sat1,ddsat[i].sat2,ddsat[i].f))==NULL) {
+            addddamb(&rtk->wlbias);
+
+            /* new ambiguity */
+            amb=&rtk->wlbias.amb[rtk->wlbias.nb++];
+            *amb=amb0;
+        }
+        /* updates ambiguity */
+        amb->time =rtk->sol.time;
+        amb->ratio=rtk->sol.wlratio;
+        amb->bias =bias[i];
+
+        /* update satellite and frequency no. */
+        amb->sat1=ddsat[i].sat1;
+        amb->sat2=ddsat[i].sat2;
+        amb->f=ddsat[i].f;
+        amb->c++;
+    }
+    return j;
+}
+/* inherit WL ambiguity------------------------------------------------------*/
+static int inheritambwl(rtk_t *rtk,const ddsat_t *wlsat,const double *wl,
+                        int nw,double *b,double *s)
+{
+    ddamb_t *pamb=NULL;
+    int i,k=0;
+
+    trace(3,"inheritambwl:\n");
+#if 1
+    for (i=0;i<nw;i++) b[i]=wl[i];
+    for (i=0;i<nw;i++) {
+        if ((pamb=getddamb(&rtk->wlbias,wlsat[i].sat1,wlsat[i].sat2,wlsat[i].f))==NULL) continue;
+        if (pamb->ratio<rtk->opt.thresar[0]*1.5) continue;
+
+        if (timediff(rtk->sol.time,pamb->time)>1.0) continue;
+        if (fabs(wl[i]-pamb->bias)>1.0) continue;
+        b[i]=pamb->bias;
+        k++;
+    }
+    s[1]=s[0]=1.0;
+    if (k>=2) {
+        s[1]=999.0;
+        s[0]=1.00;
+        trace(3,"inherit ambiguity=\n");
+        tracemat(3,b,1,nw,12,6);
+        return 1;
+    }
+#endif
+    return 0;
+}
 /* resolve WL integer ambiguity by LAMBDA------------------------------------*/
 static int resamb_WL(rtk_t *rtk, double *Qy, double *y, int ny, int *index,const double *D,
                      int nw, ddsat_t *wlsat)
 {
-    register int i,k,info=0,na,tc;
+    int i,j,k,info=0,na,tc,inherit=0;
     double *Qw,*wl,*b,*v,*R,*r,*H,s[2];
 
     trace(3,"resamb_WL:\n");
 
-    if (nw<=0) {
+    if (nw<=2) {
         errmsg(rtk,"no valid WL double-difference\n");
         return 0;
     }
     tc=rtk->opt.mode==PMODE_INS_TGNSS;
     tc?na=rtk->ins.nb:na=rtk->na;
 
-    Qw=mat(ny,ny); wl=mat(ny,1);
+    Qw=mat(ny,ny); wl=mat(ny,1); H=zeros(ny,ny); v=mat(ny,1);
     b=mat(ny,2); r=mat(ny,1);
-    R=zeros(ny,ny); H=zeros(ny,ny);
-    v=mat(ny,1);
+    R=zeros(ny,ny);
 
     /* covariance matrix of WL ambiguity */
     matmul33("TNN",D,Qy,D,nw,ny,ny,nw,Qw);
     for (i=0;i<nw;i++) {
 
         /* WL float ambiguity: N1-N2 */
-        wl[i]=y[na+index[2*i]]-y[na+index[2*i+1]];
+        wl[na+i]=y[na+index[2*i]]-y[na+index[2*i+1]];
     }
     /* lambda/mlambda integer least-square estimation */
-    if (!lambda(nw,2,wl,Qw,b,s)) {
+    if (!lambda(nw,2,wl+na,Qw,b,s)) {
 
-        trace(4,"N(1)=\n"); tracemat(4,b   ,1,nw,10,3);
-        trace(4,"N(2)=\n"); tracemat(4,b+nw,1,nw,10,3);
+        trace(4,"WL-N(1)=\n"); tracemat(4,b   ,1,nw,10,3);
+        trace(4,"WL-N(2)=\n"); tracemat(4,b+nw,1,nw,10,3);
 
         rtk->sol.wlratio=s[0]>0?(float)(s[1]/s[0]):0.0f;
-        if (rtk->sol.wlratio>999.9) rtk->sol.wlratio=999.9f;
-
+        if (rtk->sol.wlratio>999.9f) {
+            rtk->sol.wlratio=999.9f;
+        }
         /* validation by popular ratio-test */
-        if (s[0]<=0.0||s[1]/s[0]>=rtk->opt.thresar[0]) {
-
+        if ((s[0]<=0.0||s[1]/s[0]>=rtk->opt.thresar[0])||(inherit=inheritambwl(rtk,wlsat,wl+na,nw,b,s))) {
+            if (inherit) {
+                rtk->sol.wlratio=(float)(s[1]/s[0]);
+            }
             /* WL constraint for N1 and N2 ambiguity */
             for (k=0,i=0;i<nw;i++) {
-                v[k]=b[i]-(wl[i]);
+                v[k]=b[i]-wl[na+i];
 
                 if (fabs(v[k])>THRES_AMB) continue;
-
                 H[index[2*i+0]+na+ny*k]= 1.0;
                 H[index[2*i+1]+na+ny*k]=-1.0;
                 r[k]=SQR(VAR_WLCONST);
@@ -2118,17 +2179,28 @@ static int resamb_WL(rtk_t *rtk, double *Qy, double *y, int ny, int *index,const
                 /* filter for constraint */
                 if (filter(y,Qy,H,v,R,ny,k)) {
                     trace(2,"filter error\n");
-                    info=0; /* fail */
+                    info=0;
                 }
                 else {
-                    info=1; /* fix ok */
-
                     /* WL fix to update rover position */
-                    for (i=0;i<na;i++) {
-                        tc?rtk->ins.x[i]=y[i]:rtk->x[i]=y[i];
+                    if (tc) clp(&rtk->ins,&rtk->opt.insopt,y);
+                    else {
+                        for (i=0;i<na;i++) rtk->x[i]=y[i];
+                        for (i=0;i<na;i++) {
+                            for (j=0;j<na;j++) rtk->Pa[i+j*na]=Qy[i+j*ny];
+                        }
                     }
+                    /* fix ok */
+                    info=1;
+                }
+                /* store WL ambiguity */
+                if (info) {
+                    storeambwl(rtk,wlsat,nw,b);
                 }
             }
+        }
+        else {
+            info=0;
         }
     }
     if (info) {
@@ -2138,7 +2210,8 @@ static int resamb_WL(rtk_t *rtk, double *Qy, double *y, int ny, int *index,const
         trace(2,"WL ambiguity fix fail\n");
     }
     free(Qw); free(wl); free(b);
-    free(r); free(R); free(H); free(v);
+    free(r ); free(R ); free(H);
+    free(v ); 
     return info;
 }
 /* inherit ambiguity---------------------------------------------------------*/
@@ -2179,7 +2252,7 @@ static int resamb_LAMBDA(rtk_t *rtk, double *bias, double *xa, ddsat_t *ddsat,in
     prcopt_t *opt=&rtk->opt;
     insstate_t *ins=&rtk->ins;
     insopt_t *insopt=&rtk->opt.insopt;
-    ddsat_t wlsat[MAXSAT];
+    ddsat_t wlsat[MAXSAT]={{0}};
     int i,j,ny,nb,info,nx=rtk->nx,na=rtk->na,*index,nw,tc,flag=0,inherit=0;
     double *D,*DP,*y,*Qy,*b,*db,*Qb,*Qab,*QQ,s[2];
     double *DD,*x,*P,*Pa,*xb;
@@ -2269,7 +2342,7 @@ static int resamb_LAMBDA(rtk_t *rtk, double *bias, double *xa, ddsat_t *ddsat,in
             }
             /* close loop estimated states */
             if (tc) {
-                for (i=0;i<xnCl(insopt);i++) xb[i]=0.0;
+                for (i=0;i<xnCl(insopt);i++) xb[i]=1E-10;
             }
             for (i=0;i<nb;i++) {
                 /* fix ambiguity */
@@ -2658,8 +2731,8 @@ static int relpos(rtk_t *rtk, const obsd_t *obs, int nu, int nr,const nav_t *nav
 
         /* check observation type */
         if (((vflg[i]>>4)&0xF)==1) continue;
-        j=(vflg[i]>>8)&0xFF;
-        f=((vflg[i]  )&0xF);
+        j=( vflg[i]>>8)&0xFF;
+        f=((vflg[i]   )&0xF);
         if (rtk->ssat[j-1].news[f]) {
 
             /* new satellite */
