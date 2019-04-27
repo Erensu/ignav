@@ -1895,6 +1895,7 @@ typedef struct {        /* satellite status type */
     unsigned char fix [NFREQ]; /* ambiguity fix flag (1:fix,2:float,3:hold) */
     unsigned char slip[NFREQ]; /* cycle-slip flag */
     unsigned char half[NFREQ]; /* half-cycle valid flag */
+    unsigned char sfrq[NFREQ]; /* single-frq flag */
     int lock [NFREQ];   /* lock counter of phase */
     unsigned int index[NFREQ]; /* index of satellite in phase double difference residuals vector */
     unsigned int cind [NFREQ]; /* index of satellite in code double difference residuals vector */
@@ -1940,6 +1941,7 @@ typedef struct {        /* double-difference satellite */
 typedef struct {
     int nb;             /* numbers of double-difference ambiguity */
     int nmax;           /* max numbers of double-difference ambiguity */
+    int inherit;        /* ambiguity inherit flag */
     ddamb_t *amb;       /* double difference ambiguity list */
 } amb_t;
 

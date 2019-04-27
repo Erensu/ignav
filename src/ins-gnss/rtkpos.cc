@@ -54,7 +54,7 @@
 #define GAP_RESION  120        /* gap to reset ionosphere parameters (epochs) */
 
 #define VAR_HOLDAMB 0.001      /* constraint to hold ambiguity (cycle^2) */
-#define VAR_WLCONST 0.001      /* constraint to WL ambiguity */
+#define VAR_WLCONST 0.003      /* constraint to WL ambiguity */
 #define THRES_AMB   1.5        /* threshold of constraint WL ambiguity */
 #define THRES_HOLDAMB 3.0      /* threshold of hold ambiguity */
 #define THRES_MW_JUMP 5.0      /* threshold of MW cycle slip detect*/
@@ -65,8 +65,9 @@
 #define DETECT_OUTLIER 1       /* detect outlier for double-differenced measurement data */
 #define THRES_L1L2RES 0.005    /* threshold of L1/L2 double difference residual for detecting outliers*/
 
-#define THRES_INHERIT_TIME 3.0 /* threshold of ambiguity inherit */
-#define THRES_INHERIT_BIAS 1.5 /* threshold of ambiguity inherit */
+#define THRES_INHERIT_TIME 1.5 /* threshold of ambiguity inherit */
+#define THRES_INHERIT_BIAS 1.0 /* threshold of ambiguity inherit */
+#define INHERIT_AMB 1
 
 #define TTOL_MOVEB  (1.0+2*DTTOL)
                                /* time sync tolerance for moving-baseline (s) */
@@ -916,6 +917,12 @@ static void detslp_mw(rtk_t *rtk, const obsd_t *obs, int iu, int ir,
         for (j=0;j<rtk->opt.nf;j++) rtk->ssat[sat-1].slip[j]|=1;
     }
 }
+/* test # frequencys for observation data-------------------------------------*/
+static int chkfrq(const obsd_t *obs,const prcopt_t *opt)
+{
+    /* only check two frequency for phase observation data */
+    int i; for (i=0;i<NF(opt);i++) if (obs->L[i]==0.0) return 0; return 1;
+}
 /* temporal update of phase biases -------------------------------------------*/
 static void udbias(rtk_t *rtk, double tt, const obsd_t *obs, const int *sat, const double *rs,
                    const int *iu, const int *ir, int ns, const nav_t *nav)
@@ -983,6 +990,9 @@ static void udbias(rtk_t *rtk, double tt, const obsd_t *obs, const int *sat, con
             j=tc?xiBs((&rtk->opt.insopt),sat[i],f):IB(sat[i],f,&rtk->opt);
 
             P[j+j*nx]+=rtk->opt.prn[0]*rtk->opt.prn[0]*fabs(tt);
+            if (rtk->ssat[sat[i]-1].sfrq[0]) {
+                P[j+j*nx]+=SQR(0.5);
+            }
             slip=rtk->ssat[sat[i]-1].slip[f];
             if (rtk->opt.ionoopt==IONOOPT_IFLC) slip|=rtk->ssat[sat[i]-1].slip[1];
             if (rtk->opt.modear==ARMODE_INST||!(slip&1)) continue;
@@ -1206,12 +1216,6 @@ static int validobs(int i, int j, int f, int nf, double *y)
     return y[f+i*nf*2]!=0.0&&y[f+j*nf*2]!=0.0&&
            (f<nf||(y[f-nf+i*nf*2]!=0.0&&y[f-nf+j*nf*2]!=0.0));
 }
-/* test # frequencys for observation data-------------------------------------*/
-static int chkfrq(const obsd_t *obs,const prcopt_t *opt)
-{
-    /* only check two frequency for phase observation data */
-    int i; for (i=0;i<NF(opt);i++) if (obs->L[i]==0.0) return 0; return 1;
-}
 /* double-differenced measurement error covariance ---------------------------*/
 static void ddcov(const int *nb, int n, const double *Ri, const double *Rj,
                   int nv, double *R)
@@ -1420,7 +1424,7 @@ static int ddres(rtk_t *rtk, const nav_t *nav, const obsd_t *obs, double dt,cons
 {
     prcopt_t *opt=&rtk->opt;
     insopt_t *insopt=&opt->insopt;
-    double bl,dr[3],posu[3],posr[3],didxi,didxj,*im,*vc,ddi,ddg;
+    double bl,dr[3],posu[3],posr[3],didxi,didxj,*im,*vc,ddi,ddg,factor=1.0;
     double *tropr,*tropu,*dtdxr,*dtdxu,*Ri,*Rj,lami,lamj,fi,fj,df,*Hi=NULL,rr[3];
     double dp[3]={0},da[3]={0},dl[3]={0},S[9],dap[3];
     int i,j,k,m,f,ff,nv=0,nb[NFREQ*4*2+2]={0},b=0,sysi,sysj,nf=NF(opt),tc,nx;
@@ -1474,10 +1478,13 @@ static int ddres(rtk_t *rtk, const nav_t *nav, const obsd_t *obs, double dt,cons
             if (!test_sys(sysi,m)) continue;
             if (!validobs(iu[j],ir[j],f,nf,y)) continue;
             if (f<nf) {
-                if (rtk->ssat[sat[j]-1].slip[f]) continue;
-
                 /* check all frequency phase-observation data */
                 if (!chkfrq(obs+ir[j],opt)) continue;
+
+                /* cycle slip */
+                if (rtk->ssat[sat[j]-1].slip[f]) {
+                    continue;
+                }
             }
             if (i<0||azel[1+iu[j]*2]>=azel[1+iu[i]*2]) i=j;
         }
@@ -1493,11 +1500,16 @@ static int ddres(rtk_t *rtk, const nav_t *nav, const obsd_t *obs, double dt,cons
             sysj=rtk->ssat[sat[j]-1].sys;
             if (!validobs(iu[j],ir[j],f,nf,y)) continue;
             if (!test_sys(sysj,m)) continue;
-            
+
+            factor=1.0;
+
             if (f<nf) {
                 /* check all frequency phase-observation data */
-                if (!chkfrq(obs+iu[j],opt)) {
-                    continue;
+                if (!chkfrq(obs+iu[j],opt)) continue;
+
+                /* cycle slip */
+                if (rtk->ssat[sat[j]-1].slip[f]) {
+                    factor*=10.0;
                 }
             }
             ff=f%nf;
@@ -1651,6 +1663,7 @@ static int ddres(rtk_t *rtk, const nav_t *nav, const obsd_t *obs, double dt,cons
                 Rj[nv]=SQR(30.0);
             }
 #endif
+            Rj[nv]*=factor;
             vflg[nv++]=(sat[i]<<16)|(sat[j]<<8)|((f<nf?0:1)<<4)|(f%nf);
             nb[b]++;
         }
@@ -1678,11 +1691,14 @@ static int ddres(rtk_t *rtk, const nav_t *nav, const obsd_t *obs, double dt,cons
                 /* L1-L2 */
                 j=rtk->ssat[sat[i]-1].index[0];
                 k=rtk->ssat[sat[i]-1].index[1];
+                
                 vv[l]=v[j]-v[k];
 
                 /* index of dd-res */
                 s[l++]=i;
             }
+            if (l<3) break;
+
             /* outliers detect */
             for (i=0;i<l;i++) avv+=vv[i]; avv/=l;
             for (i=0;i<l;i++) vv[i]-=avv;
@@ -2043,7 +2059,7 @@ static void holdamb(rtk_t *rtk, insstate_t *ins, const double *xa,const ddsat_t 
     }
     if (nv>0) {
         R=zeros(nv,nv);
-        for (i=0;i<nv;i++) R[i+i*nv]=VAR_HOLDAMB;
+        for (i=0;i<nv;i++) R[i+i*nv]=(rtk->bias.inherit?VAR_HOLDAMB*10.0:VAR_HOLDAMB);
 
         /* close-loop states set to zero */
         if (tc) {
@@ -2099,14 +2115,14 @@ static int inheritambwl(rtk_t *rtk,const ddsat_t *wlsat,const double *wl,
     int i,k=0;
 
     trace(3,"inheritambwl:\n");
-#if 1
+#if INHERIT_AMB
     for (i=0;i<nw;i++) b[i]=wl[i];
     for (i=0;i<nw;i++) {
         if ((pamb=getddamb(&rtk->wlbias,wlsat[i].sat1,wlsat[i].sat2,wlsat[i].f))==NULL) continue;
-        if (pamb->ratio<rtk->opt.thresar[0]*1.5) continue;
+        if (pamb->ratio<rtk->opt.thresar[0]*3.0) continue;
 
-        if (timediff(rtk->sol.time,pamb->time)>1.0) continue;
-        if (fabs(wl[i]-pamb->bias)>1.0) continue;
+        if (timediff(rtk->sol.time,pamb->time)>THRES_INHERIT_TIME) continue;
+        if (fabs(wl[i]-pamb->bias)>THRES_INHERIT_BIAS) continue;
         b[i]=pamb->bias;
         k++;
     }
@@ -2170,7 +2186,7 @@ static int resamb_WL(rtk_t *rtk, double *Qy, double *y, int ny, int *index,const
                 if (fabs(v[k])>THRES_AMB) continue;
                 H[index[2*i+0]+na+ny*k]= 1.0;
                 H[index[2*i+1]+na+ny*k]=-1.0;
-                r[k]=SQR(VAR_WLCONST);
+                r[k]=(inherit?SQR(VAR_WLCONST*3.0):SQR(VAR_WLCONST));
                 k++;
             }
             if (k&&ny) {
@@ -2222,12 +2238,12 @@ static int inheritamb(rtk_t *rtk, ddsat_t *ddsat,const double *y,const double *Q
     int i,k=0;
 
     trace(3,"inheritamb:\n");
-
+#if INHERIT_AMB
     for (i=0;i<nb;i++) b[i]=y[i];
     for (i=0;i<nb;i++) {
         ddsat[i].flag=1;
         if ((pamb=getddamb(&rtk->bias,ddsat[i].sat1,ddsat[i].sat2,ddsat[i].f))==NULL) continue;
-        if (pamb->ratio<rtk->opt.thresar[0]*1.5) continue;
+        if (pamb->ratio<rtk->opt.thresar[0]*10.0) continue;
 
         if (timediff(rtk->sol.time,pamb->time)>THRES_INHERIT_TIME) continue;
         if (fabs(y[i]-pamb->bias)>THRES_INHERIT_BIAS) continue;
@@ -2243,6 +2259,7 @@ static int inheritamb(rtk_t *rtk, ddsat_t *ddsat,const double *y,const double *Q
         tracemat(3,b,1,nb,12,6);
         return 1;
     }
+#endif
     return 0;
 }
 /* resolve integer ambiguity by LAMBDA --------------------------------------*/
@@ -2271,6 +2288,7 @@ static int resamb_LAMBDA(rtk_t *rtk, double *bias, double *xa, ddsat_t *ddsat,in
 
     /* reset number of dd-ambiguity */
     *namb=0;
+    rtk->bias.inherit=0;
 
     /* tc-mode flag */
     tc=rtk->opt.mode==PMODE_INS_TGNSS;
@@ -2334,6 +2352,7 @@ static int resamb_LAMBDA(rtk_t *rtk, double *bias, double *xa, ddsat_t *ddsat,in
 
             if (inherit) {
                 rtk->sol.ratio=(float)(s[1]/s[0]);
+                rtk->bias.inherit=1;
             }
             /* transform float to fixed solution (xa=xa-Qab*Qb\(b0-b)) */
             for (i=0;i<na;i++) {
@@ -2383,6 +2402,7 @@ static int resamb_LAMBDA(rtk_t *rtk, double *bias, double *xa, ddsat_t *ddsat,in
     else {
         if (inheritamb(rtk,ddsat,y+na,Qy,na,nb,b,s)) {
             rtk->sol.ratio=(float)(s[1]/s[0]);
+            rtk->bias.inherit=1;
 
             /* transform float to fixed solution (xa=xa-Qab*Qb\(b0-b)) */
             for (i=0;i<na;i++) {
