@@ -394,7 +394,7 @@ extern void gravity(const double *re, double *ge)
     double pos[3],gn[3]={0},Cne[9];
     ecef2pos(re,pos);
     gn[2]=gravity0(pos)*(1.0-2.0*pos[2]/RE);
-    ned2xyz(pos,Cne); 
+    ned2xyz(pos,Cne);
     matmul3v("N",Cne,gn,ge);
 }
 /* Calculates  acceleration due to gravity resolved about ecef-frame ---------
@@ -476,7 +476,7 @@ extern void initins(insstate_t *ins, const double *re, double angh,
         }
         rpy[0]=atan2(-fb[1],-fb[2]); /* (5.89) */
         rpy[1]=atan(fb[0]/norm(fb+1,2));
-        
+
         if (angh==0.0) {
             rp2head(rpy[0],rpy[1],ab,rpy+3);
         }
@@ -544,6 +544,32 @@ static void updateatt(double t, double *Cbe, const double *omgb,const double *da
     for (i=0;i<9;i++) Cbe[i]=Cbep[i]-Comg[i]*t; /* (5.20) */
 #endif
 }
+/* normlization quaternion---------------------------------------------------*/
+static void normquat(double *q)
+{
+    double e;
+    e=0.5*(norm(q,4)-1.0);
+
+    q[0]=(1.0-e)*q[0];
+    q[1]=(1.0-e)*q[1];
+    q[2]=(1.0-e)*q[2];
+}
+/* update ins states in n-frame----------------------------------------------*/
+static void updinsn(insstate_t *ins)
+{
+    double Cne[9];
+
+    /* position */
+    ecef2pos(ins->re,ins->rn);
+
+    /* attitude/velocity */
+    ned2xyz(ins->rn,Cne);
+    matmul("TN",3,3,3,1.0,Cne,ins->Cbe,0.0,ins->Cbn);
+    matmul("TN",3,1,3,1.0,Cne,ins->ve ,0.0,ins->vn );
+
+    /* acceleration */
+    matmul("TN",3,1,3,1.0,Cne,ins->ae,0.0,ins->an);
+}
 /* update ins states ----------------------------------------------------------
 * updata ins states with imu measurement data in e-frame
 * args   : insopt   *insopt I   ins updates options
@@ -553,6 +579,7 @@ static void updateatt(double t, double *Cbe, const double *omgb,const double *da
 *----------------------------------------------------------------------------*/
 extern int updateins(const insopt_t *insopt,insstate_t *ins,const imud_t *data)
 {
+#if 0
     double dt,Cbe[9],fe[3],ge[3],cori[3],Cbb[9]={1,0,0,0,1,0,0,0,1};
     double Ca[9],Ca2[9],a1,a2,a,alpha[3]={0},Omg[9]={0},ae[3]={0};
     double das[3]={0},dvs[3]={0},fb[3];
@@ -595,7 +622,7 @@ extern int updateins(const insopt_t *insopt,insstate_t *ins,const imud_t *data)
     /* update attitude */
     for (i=0;i<9;i++) Cbe[i]=ins->Cbe[i];
     updateatt(dt,ins->Cbe,ins->omgb,das);
-    
+
 #if INSUPDPRE
     for (i=0;i<3;i++) alpha[i]=ins->omgb[i]*dt+das[i];
     skewsym3(alpha,Ca);
@@ -638,10 +665,95 @@ extern int updateins(const insopt_t *insopt,insstate_t *ins,const imud_t *data)
     ins->dt=timediff(data->time,ins->time);
     ins->ptime=ins->time;
     ins->time =data->time;
-    ins->stat =INSS_MECH;  
+    ins->stat =INSS_MECH;
 
     trace(5,"ins(+)=\n"); traceins(5,ins);
     return 1;
+#else
+    double dt,dqb[4],qk_1[4],Ck_1[9],qk[4],dqe[4],qtmp[4],da[3]={0},dv[3]={0};
+    double domgb[3],domge[3],dvfk[3],dvbk[4],domg,dCe[9];
+    double wv[3],Omge[3],ge[3],vek_1[3];
+    int i;
+
+    trace(3,"updateins:\n");
+
+    trace(5,"ins(-)=\n");
+    traceins(5,ins);
+
+    /* save precious epoch ins states */
+    savepins(ins,data);
+
+    if ((dt=timediff(data->time,ins->time))>MAXDT||fabs(dt)<1E-6) {
+
+        /* update time information */
+        ins->dt=timediff(data->time,ins->time);
+        ins->ptime=ins->time;
+        ins->time =data->time;
+
+        trace(2,"time difference too large: %.0fs\n",dt);
+        return 0;
+    }
+    for (i=0;i<3;i++) {
+        ins->omgb0[i]=data->gyro[i];
+        ins->fb0  [i]=data->accl[i];
+        if (insopt->exinserr) {
+            ins_errmodel(data->accl,data->gyro,ins->fb,ins->omgb,ins);
+        }
+        else {
+            ins->omgb[i]=data->gyro[i]-ins->bg[i];
+            ins->fb  [i]=data->accl[i]-ins->ba[i];
+        }
+    }
+    /* update attitude */
+#if SCULL_CORR
+    rotscull_corr(ins,insopt,dt,dv,da);
+#endif
+    for (i=0;i<3;i++) {
+        domgb[i]=ins->omgb[i]*dt+da[i];
+    }
+    rvec2quat(domgb,dqb);
+
+    domge[2]=-OMGE*dt;
+    rvec2quat(domge,dqe);
+    quat2dcmx(dqe,dCe);
+
+    matcpy(Ck_1,ins->Cbe,3,3);
+    dcm2quatx(ins->Cbe,qk_1);
+    quatmulx(qk_1,dqb,qtmp);
+    quatmulx(dqe,qtmp,qk);
+    normquat(qk);
+    quat2dcmx(qk,ins->Cbe);
+
+    /* update velocity */
+    dvbk[0]=ins->fb[0]*dt+dv[0];
+    dvbk[1]=ins->fb[1]*dt+dv[1];
+    dvbk[2]=ins->fb[2]*dt+dv[2];
+    matmul33("NNN",dCe,Ck_1,dvbk,3,3,3,1,dvfk);
+
+    Omge[0]=0.0;
+    Omge[1]=0.0;
+    Omge[2]=OMGE;
+    cross3(Omge,ins->ve,wv);
+    gravity(ins->re,ge);
+    for (i=0;i<3;i++) {
+        ins->ve[i]+=dvfk[i]+(ge[i]-2.0*wv[i])*dt;
+    }
+    /* update position */
+    matcpy(vek_1,ins->ve,1,3);
+    for (i=0;i<3;i++) {
+        ins->re[i]+=0.5*(vek_1[i]+ins->ve[i])*dt;
+    }
+    /* update ins state in n-frame */
+    updinsn(ins);
+
+    ins->dt=timediff(data->time,ins->time);
+    ins->ptime=ins->time;
+    ins->time =data->time;
+    ins->stat =INSS_MECH;
+
+    trace(5,"ins(+)=\n"); traceins(5,ins);
+    return 1;
+#endif
 }
 /* Calculates the meridian and transverse radii of curvature------------------
  * args   : double *rn        I    position in n-frame (lat,lon,h) {rad/m}
@@ -744,7 +856,7 @@ extern void traceins(int level, const insstate_t *ins)
     trace(level,"time  =%s\n",s);
     ecef2pos(ins->re,pos);
     ned2xyz(pos,Cne);
-    matmul3("TN",ins->Cbe,Cne,Cnb); 
+    matmul3("TN",ins->Cbe,Cne,Cnb);
     dcm2rpy(Cnb,rpy);
     trace(level,"attn =%8.5f %8.5f %8.5f\n",rpy[0]*R2D,rpy[1]*R2D,rpy[2]*R2D);
 
@@ -1028,7 +1140,7 @@ extern void dcm2rot(const double *C,double *rv)
  *          double *vn       O  velocity in ned-frame
  * return: none
  * --------------------------------------------------------------------------*/
-extern void getvn(const insstate_t *ins,double *vn)                                  
+extern void getvn(const insstate_t *ins,double *vn)
 {
     double pos[3],C[9];
 
@@ -1036,7 +1148,7 @@ extern void getvn(const insstate_t *ins,double *vn)
 
     ecef2pos(ins->re,pos);
     ned2xyz(pos,C);
-    matmul("TN",3,1,3,1.0,C,ins->ve,0.0,vn); 
+    matmul("TN",3,1,3,1.0,C,ins->ve,0.0,vn);
 }
 /* update ins states in n-frame----------------------------------------------*/
 extern void update_ins_state_n(insstate_t *ins)
@@ -1128,6 +1240,7 @@ extern void rotscull_corr(insstate_t *ins,const insopt_t *opt,double dt,
                           double *dv,double *da)
 {
     double dap[3],dvp[3],dak[3],dvk[3],dv1[3],dv2[3],dv3[3];
+    double domg,a1,a2,dv4[3];
     int i;
     for (i=0;i<3;i++) {
         dap[i]=ins->omgbp[i]*ins->dt;
@@ -1139,8 +1252,24 @@ extern void rotscull_corr(insstate_t *ins,const insopt_t *opt,double dt,
     cross3(dak,dvk,dv1);
     cross3(dap,dvk,dv2);
     cross3(dvp,dak,dv3);
+
+    domg=norm(dak,3);
+    if (fabs(domg)>1E-6) {
+        a1=(1.0-cos(domg))/SQR(domg);
+        a2=1.0/SQR(domg)*(1.0-sin(domg)/domg);
+    }
+    else {
+        a1=0.5-SQR(domg)/24.0+SQR(SQR(domg))/720.0;
+        a2=1.0/6.0-SQR(domg)/120.0+SQR(SQR(domg))/5040.0;
+    }
+    cross3(dak,dv1,dv4);
+
     for (i=0;i<3&&dv;i++) {
+#if 0
         dv[i]=0.5*dv1[i]+1.0/12.0*(dv2[i]+dv3[i]);
+#else
+        dv[i]=a1*dv1[i]+a2*dv4[i]+1.0/12.0*(dv2[i]+dv3[i]);
+#endif
     }
     if (da) {
         cross3(dap,dak,da);
