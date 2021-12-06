@@ -29,17 +29,23 @@ IGNAV目前仅支持在Linux环境下编译，具体过程与编译CMAKE工程�
 
 # 运行
 在目录/example/demo下有相应视频Demo；
+
 plot运行需要安装Qt．
+
 运行命令：navapp -o ../example/conf/navlib.conf -m 52716
 
 # 参考
 [1] http://www.rtklib.com
+
 [2] P.D.Groves,Principles of GNSS,Intertial,and Multisensor Integrated Navigation System
+
 [3] 武汉迈普导航科技有限公司，http://www.whmpst.com/cn/
 
 # 联系
 地址：武汉大学，卫星导航与定位技术研究中心，苏景岚
+
 QQ  ：1971129844
+
 邮箱：sujinglan@whu.edu.cn
 
 # 注意
