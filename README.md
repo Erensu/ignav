@@ -34,15 +34,13 @@ plot运行需要安装Qt．
 
 # 参考
 [1] http://www.rtklib.com
-
 [2] P.D.Groves,Principles of GNSS,Intertial,and Multisensor Integrated Navigation System
-
 [3] 武汉迈普导航科技有限公司，http://www.whmpst.com/cn/
 
 # 联系
 地址：武汉大学，卫星导航与定位技术研究中心，苏景岚
-
 QQ  ：1971129844
-
 邮箱：sujinglan@whu.edu.cn
 
+# 注意
+ignav开源版本仅供学习，ignav专业版可咨询作者本人
