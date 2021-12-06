@@ -49,4 +49,4 @@ QQ  ：1971129844
 邮箱：sujinglan@whu.edu.cn
 
 # 注意
-ignav开源版本仅供学习，ignav专业版可咨询作者本人
+ignav开源版本仅供学习，ignav专业版本可咨询作者本人
