@@ -1,1 +1,7 @@
 # Created by .ignore support plugin (hsz.mobi)
+
+# Local working files (WorkBuddy / IDE session data)
+.workbuddy/
+
+# Build directory
+build/

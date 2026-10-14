@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="780" viewBox="0 0 900 780" role="img" aria-label="IGNAV processing pipeline">
+  <title>IGNAV Processing Pipeline</title>
+  <rect x="0" y="0" width="900" height="780" fill="#FFFFFF"/>
+
+  <!-- Title -->
+  <text x="450" y="44" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="22" font-weight="700" fill="#263238">IGNAV Processing Pipeline</text>
+  <text x="450" y="64" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#90A4AE">from sensor streams to the navigation solution</text>
+
+  <!-- Input streams -->
+  <rect x="215" y="84" width="470" height="64" rx="10" fill="#ECEFF1" stroke="#607D8B" stroke-width="1.4"/>
+  <text x="450" y="112" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14.5" font-weight="600" fill="#37474F">Input streams</text>
+  <text x="450" y="134" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#546E7A">serial &#183; file &#183; TCP &#183; NTRIP &#183; FTP &#183; HTTP</text>
+
+  <line x1="450" y1="150" x2="450" y2="170" stroke="#78909C" stroke-width="1.6"/>
+  <polygon points="450,180 444,170 456,170" fill="#78909C"/>
+
+  <!-- Decoders -->
+  <rect x="215" y="184" width="470" height="64" rx="10" fill="#E0F7FA" stroke="#00838F" stroke-width="1.4"/>
+  <text x="450" y="212" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14.5" font-weight="600" fill="#00838F">Ring buffers + raw decoders (rcv/)</text>
+  <text x="450" y="234" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#455A64">receiver raw &amp; RTCM decoding</text>
+
+  <line x1="450" y1="250" x2="450" y2="262" stroke="#78909C" stroke-width="1.6"/>
+  <line x1="327" y1="262" x2="573" y2="262" stroke="#78909C" stroke-width="1.6"/>
+  <polygon points="327,274 321,264 333,264" fill="#78909C"/>
+  <polygon points="573,274 567,264 579,264" fill="#78909C"/>
+
+  <!-- Split: GNSS / INS -->
+  <rect x="215" y="278" width="225" height="76" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="1.4"/>
+  <text x="327" y="310" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="600" fill="#2E7D32">GNSS engine</text>
+  <text x="327" y="332" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#455A64">SPP / RTK / PPP</text>
+
+  <rect x="460" y="278" width="225" height="76" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="1.4"/>
+  <text x="573" y="310" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="600" fill="#E65100">INS mechanization</text>
+  <text x="573" y="332" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#455A64">IMU rate (e.g. 200 Hz)</text>
+
+  <line x1="327" y1="356" x2="327" y2="368" stroke="#78909C" stroke-width="1.6"/>
+  <line x1="573" y1="356" x2="573" y2="368" stroke="#78909C" stroke-width="1.6"/>
+  <line x1="327" y1="368" x2="573" y2="368" stroke="#78909C" stroke-width="1.6"/>
+  <line x1="450" y1="368" x2="450" y2="372" stroke="#78909C" stroke-width="1.6"/>
+  <polygon points="450,382 444,372 456,372" fill="#78909C"/>
+
+  <!-- EKF -->
+  <rect x="215" y="386" width="470" height="64" rx="10" fill="#E3F2FD" stroke="#1565C0" stroke-width="1.6"/>
+  <text x="450" y="414" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14.5" font-weight="600" fill="#1565C0">INS/GNSS EKF</text>
+  <text x="450" y="436" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#455A64">error-state filter &#183; loose / tight coupling</text>
+
+  <!-- Aiding card -->
+  <rect x="700" y="364" width="180" height="106" rx="10" fill="#FFFDE7" stroke="#F9A825" stroke-width="1.4"/>
+  <text x="714" y="388" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="600" fill="#F57F17">Aiding &amp; constraints</text>
+  <text x="714" y="414" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" fill="#455A64">odometer &#183; Doppler</text>
+  <text x="714" y="436" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" fill="#455A64">dual-antenna &#183; magnetometer</text>
+  <text x="714" y="458" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" fill="#455A64">pose &#183; NHC &#183; ZUPT &#183; ZARU</text>
+  <line x1="698" y1="417" x2="692" y2="417" stroke="#F9A825" stroke-width="1.6"/>
+  <polygon points="688,417 695,413 695,421" fill="#F9A825"/>
+
+  <line x1="450" y1="452" x2="450" y2="474" stroke="#78909C" stroke-width="1.6"/>
+  <polygon points="450,484 444,474 456,474" fill="#78909C"/>
+
+  <!-- Solution -->
+  <rect x="215" y="488" width="470" height="64" rx="10" fill="#F3E5F5" stroke="#6A1B9A" stroke-width="1.4"/>
+  <text x="450" y="516" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14.5" font-weight="600" fill="#6A1B9A">Navigation solution</text>
+  <text x="450" y="538" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#455A64">position &#183; velocity &#183; attitude (+ std)</text>
+
+  <line x1="450" y1="554" x2="450" y2="566" stroke="#78909C" stroke-width="1.6"/>
+  <line x1="327" y1="566" x2="573" y2="566" stroke="#78909C" stroke-width="1.6"/>
+  <polygon points="327,578 321,568 333,568" fill="#78909C"/>
+  <polygon points="573,578 567,568 579,568" fill="#78909C"/>
+
+  <!-- Outputs -->
+  <rect x="215" y="582" width="225" height="64" rx="10" fill="#ECEFF1" stroke="#607D8B" stroke-width="1.4"/>
+  <text x="327" y="610" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="600" fill="#37474F">Output streams</text>
+  <text x="327" y="632" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#546E7A">file &#183; NTRIP</text>
+
+  <rect x="460" y="582" width="225" height="64" rx="10" fill="#ECEFF1" stroke="#607D8B" stroke-width="1.4"/>
+  <text x="573" y="610" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="600" fill="#37474F">Monitor stream</text>
+  <text x="573" y="632" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#546E7A">live view in plot tool</text>
+
+  <!-- Post-processing footnote -->
+  <rect x="190" y="672" width="520" height="58" rx="10" fill="#FAFAFA" stroke="#B0BEC5" stroke-width="1.2" stroke-dasharray="6 4"/>
+  <text x="450" y="698" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="600" fill="#546E7A">Post-processing (offline)</text>
+  <text x="450" y="720" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#607D8B">lc-rts: RTS smoother &#183; lc-fbsm: forward/backward fixed-point</text>
+</svg>

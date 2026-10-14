@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="860" viewBox="0 0 1000 860" role="img" aria-label="IGNAV system architecture, layered design">
+  <title>IGNAV System Architecture — Layered Design</title>
+  <rect x="0" y="0" width="1000" height="860" fill="#FFFFFF"/>
+
+  <!-- Title -->
+  <text x="500" y="44" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="23" font-weight="700" fill="#263238">IGNAV System Architecture</text>
+  <text x="500" y="64" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#90A4AE">layered design — RTKLIB-based INS/GNSS integrated navigation library</text>
+
+  <!-- ================= Layer 1: Applications ================= -->
+  <rect x="30" y="82" width="940" height="98" rx="12" fill="#E3F2FD" stroke="#BBDEFB" stroke-width="1"/>
+  <path d="M30,94 Q30,82 42,82 L958,82 Q970,82 970,94 L970,116 L30,116 Z" fill="#1565C0"/>
+  <text x="46" y="105" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14.5" font-weight="600" fill="#FFFFFF">Applications</text>
+  <text x="954" y="105" text-anchor="end" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#FFFFFF" opacity="0.85">user-facing tools</text>
+
+  <rect x="44" y="128" width="296" height="40" rx="8" fill="#FFFFFF" stroke="#90CAF9" stroke-width="1.2"/>
+  <text x="58" y="145" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="600" fill="#0D47A1">navapp</text>
+  <text x="58" y="160" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#455A64">real-time / post-processing console</text>
+
+  <rect x="352" y="128" width="296" height="40" rx="8" fill="#FFFFFF" stroke="#90CAF9" stroke-width="1.2"/>
+  <text x="366" y="145" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="600" fill="#0D47A1">lc-rts</text>
+  <text x="366" y="160" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#455A64">loose-coupling RTS smoother</text>
+
+  <rect x="660" y="128" width="296" height="40" rx="8" fill="#FFFFFF" stroke="#90CAF9" stroke-width="1.2"/>
+  <text x="674" y="145" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="600" fill="#0D47A1">lc-fbsm</text>
+  <text x="674" y="160" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#455A64">forward/backward fixed-point smoother</text>
+
+  <!-- ================= Layer 2: RTK server ================= -->
+  <rect x="30" y="196" width="940" height="114" rx="12" fill="#E0F7FA" stroke="#B2EBF2" stroke-width="1"/>
+  <path d="M30,208 Q30,196 42,196 L958,196 Q970,196 970,208 L970,230 L30,230 Z" fill="#00838F"/>
+  <text x="46" y="219" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14.5" font-weight="600" fill="#FFFFFF">RTK server</text>
+  <text x="954" y="219" text-anchor="end" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#FFFFFF" opacity="0.85">rtksvr.cc</text>
+
+  <rect x="44" y="254" width="110" height="34" rx="8" fill="#FFFFFF" stroke="#80DEEA" stroke-width="1.2"/>
+  <text x="99" y="275" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#006064">Input streams</text>
+  <line x1="158" y1="271" x2="176" y2="271" stroke="#78909C" stroke-width="1.6"/>
+  <polygon points="183,271 172,266.5 172,275.5" fill="#78909C"/>
+
+  <rect x="184" y="254" width="105" height="34" rx="8" fill="#FFFFFF" stroke="#80DEEA" stroke-width="1.2"/>
+  <text x="236" y="275" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#006064">Ring buffers</text>
+  <line x1="293" y1="271" x2="311" y2="271" stroke="#78909C" stroke-width="1.6"/>
+  <polygon points="318,271 307,266.5 307,275.5" fill="#78909C"/>
+
+  <rect x="319" y="254" width="95" height="34" rx="8" fill="#FFFFFF" stroke="#80DEEA" stroke-width="1.2"/>
+  <text x="366" y="275" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#006064">Raw decode</text>
+  <line x1="418" y1="271" x2="436" y2="271" stroke="#78909C" stroke-width="1.6"/>
+  <polygon points="443,271 432,266.5 432,275.5" fill="#78909C"/>
+
+  <rect x="444" y="254" width="125" height="34" rx="8" fill="#FFFFFF" stroke="#80DEEA" stroke-width="1.2"/>
+  <text x="506" y="275" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#006064">Epoch alignment</text>
+  <line x1="573" y1="271" x2="591" y2="271" stroke="#78909C" stroke-width="1.6"/>
+  <polygon points="598,271 587,266.5 587,275.5" fill="#78909C"/>
+
+  <rect x="599" y="254" width="125" height="34" rx="8" fill="#FFFFFF" stroke="#80DEEA" stroke-width="1.2"/>
+  <text x="661" y="275" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#006064">Solution engine</text>
+  <line x1="728" y1="271" x2="746" y2="271" stroke="#78909C" stroke-width="1.6"/>
+  <polygon points="753,271 742,266.5 742,275.5" fill="#78909C"/>
+
+  <rect x="754" y="254" width="170" height="34" rx="8" fill="#FFFFFF" stroke="#80DEEA" stroke-width="1.2"/>
+  <text x="839" y="275" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#006064">Output / monitor / log</text>
+
+  <!-- ================= Layer 3: Engines ================= -->
+  <rect x="30" y="326" width="940" height="194" rx="12" fill="#ECEFF1" stroke="#CFD8DC" stroke-width="1"/>
+  <path d="M30,338 Q30,326 42,326 L958,326 Q970,326 970,338 L970,360 L30,360 Z" fill="#455A64"/>
+  <text x="46" y="349" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14.5" font-weight="600" fill="#FFFFFF">Processing engines</text>
+  <text x="954" y="349" text-anchor="end" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#FFFFFF" opacity="0.85">GNSS + INS</text>
+
+  <rect x="44" y="374" width="446" height="134" rx="10" fill="#FFFFFF" stroke="#A5D6A7" stroke-width="1.2"/>
+  <text x="62" y="398" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#2E7D32">GNSS engine</text>
+  <line x1="62" y1="408" x2="472" y2="408" stroke="#E8F5E9" stroke-width="1.5"/>
+  <text x="76" y="428" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12.5" fill="#37474F">&#8226; SPP / DGPS / RTK / PPP positioning</text>
+  <text x="76" y="452" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12.5" fill="#37474F">&#8226; Ambiguity resolution (LAMBDA) &amp; AR modes</text>
+  <text x="76" y="476" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12.5" fill="#37474F">&#8226; Ephemeris &#183; ionosphere / troposphere &#183; tides</text>
+  <text x="76" y="500" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12.5" fill="#37474F">&#8226; SBAS / QZSS-LEX &#183; SP3 / CLK</text>
+
+  <rect x="510" y="374" width="446" height="134" rx="10" fill="#FFFFFF" stroke="#FFCC80" stroke-width="1.2"/>
+  <text x="528" y="398" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#E65100">INS engine</text>
+  <line x1="528" y1="408" x2="938" y2="408" stroke="#FFF3E0" stroke-width="1.5"/>
+  <text x="542" y="428" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12.5" fill="#37474F">&#8226; Mechanization (ins.cc), forward / backward</text>
+  <text x="542" y="452" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12.5" fill="#37474F">&#8226; Alignment: static / in-motion / dual-antenna</text>
+  <text x="542" y="476" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12.5" fill="#37474F">&#8226; INS/GNSS EKF &#183; loose / tight coupling</text>
+  <text x="542" y="500" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12.5" fill="#37474F">&#8226; Aiding, constraints &amp; smoothing</text>
+
+  <!-- ================= Layer 4: Data layer ================= -->
+  <rect x="30" y="532" width="940" height="170" rx="12" fill="#F3E5F5" stroke="#E1BEE7" stroke-width="1"/>
+  <path d="M30,544 Q30,532 42,532 L958,532 Q970,532 970,544 L970,566 L30,566 Z" fill="#6A1B9A"/>
+  <text x="46" y="555" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14.5" font-weight="600" fill="#FFFFFF">Data layer</text>
+  <text x="954" y="555" text-anchor="end" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#FFFFFF" opacity="0.85">I/O and data formats</text>
+
+  <text x="60" y="600" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12.5" font-weight="600" fill="#6A1B9A">Streams</text>
+  <text x="190" y="600" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#37474F">serial &#183; file &#183; TCP &#183; NTRIP &#183; FTP &#183; HTTP</text>
+
+  <text x="60" y="642" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12.5" font-weight="600" fill="#6A1B9A">Decoders</text>
+  <text x="190" y="642" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#37474F">ublox &#183; novatel &#183; septentrio &#183; gsof &#183; binex &#183; rt17 &#183; cmr &#183; ss2 &#183; nvs</text>
+  <text x="190" y="660" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#37474F">skytraq &#183; m39 &#183; euroc &#183; kitti &#183; malaga &#183; ground truth &#183; odo &#183; ...</text>
+
+  <text x="60" y="690" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12.5" font-weight="600" fill="#6A1B9A">Formats</text>
+  <text x="190" y="690" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#37474F">RINEX &#183; RTCM2/3 &#183; SP3 &#183; CLK &#183; NMEA &#183; GPX &#183; KML</text>
+
+  <!-- ================= Layer 5: Common utilities ================= -->
+  <rect x="30" y="718" width="940" height="108" rx="12" fill="#FAFAFA" stroke="#CFD8DC" stroke-width="1"/>
+  <path d="M30,730 Q30,718 42,718 L958,718 Q970,718 970,730 L970,752 L30,752 Z" fill="#37474F"/>
+  <text x="46" y="741" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14.5" font-weight="600" fill="#FFFFFF">Common utilities</text>
+  <text x="954" y="741" text-anchor="end" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#FFFFFF" opacity="0.85">shared foundation</text>
+
+  <text x="60" y="784" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#37474F"><tspan font-weight="600">rtkcmn</tspan> — math &#183; coordinates &#183; time &#183; solution I/O</text>
+  <text x="60" y="808" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#37474F">Quaternion / SO(3) / SE(3) &#183; LAPACK wrappers &#183; vt (virtual terminal)</text>
+</svg>

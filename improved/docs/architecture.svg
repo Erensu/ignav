@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900" viewBox="0 0 900 900" role="img" aria-label="CarViG vision-aided positioning pipeline">
+  <title>CarViG Vision Pipeline</title>
+  <rect x="0" y="0" width="900" height="900" fill="#FFFFFF"/>
+
+  <!-- Title -->
+  <text x="450" y="44" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="22" font-weight="700" fill="#263238">CarViG Vision Pipeline</text>
+  <text x="450" y="64" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#90A4AE">camera + INS/GNSS fusion for vehicle positioning</text>
+
+  <!-- Sources -->
+  <rect x="60" y="84" width="370" height="64" rx="10" fill="#F3E5F5" stroke="#6A1B9A" stroke-width="1.4"/>
+  <text x="245" y="112" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14.5" font-weight="600" fill="#6A1B9A">Camera images</text>
+  <text x="245" y="134" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#455A64">mono or stereo &#183; directory or stream</text>
+
+  <rect x="470" y="84" width="370" height="64" rx="10" fill="#E0F7FA" stroke="#00838F" stroke-width="1.4"/>
+  <text x="655" y="112" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14.5" font-weight="600" fill="#00838F">GNSS / INS inputs</text>
+  <text x="655" y="134" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#455A64">raw GNSS &#183; IMU &#183; odometer</text>
+
+  <line x1="245" y1="150" x2="245" y2="170" stroke="#78909C" stroke-width="1.6"/>
+  <polygon points="245,180 239,170 251,170" fill="#78909C"/>
+  <line x1="655" y1="150" x2="655" y2="170" stroke="#78909C" stroke-width="1.6"/>
+  <polygon points="655,180 649,170 661,170" fill="#78909C"/>
+
+  <!-- Left chain: image processing -->
+  <rect x="60" y="182" width="370" height="64" rx="10" fill="#F3E5F5" stroke="#6A1B9A" stroke-width="1.4"/>
+  <text x="245" y="210" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="600" fill="#6A1B9A">Image filtering</text>
+  <text x="245" y="232" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#546E7A">ins-img-filter.cc</text>
+
+  <line x1="245" y1="248" x2="245" y2="268" stroke="#78909C" stroke-width="1.6"/>
+  <polygon points="245,278 239,268 251,268" fill="#78909C"/>
+
+  <rect x="60" y="282" width="370" height="118" rx="10" fill="#F3E5F5" stroke="#6A1B9A" stroke-width="1.4"/>
+  <text x="245" y="310" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="600" fill="#6A1B9A">Feature pipeline</text>
+  <text x="76" y="336" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#37474F">&#8226; FAST detection (ins-libfast.cc)</text>
+  <text x="76" y="362" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#37474F">&#8226; KLT tracking (ins-flow-track.cc)</text>
+  <text x="76" y="388" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#37474F">&#8226; Matching + GMS (ins-match, gms-matcher)</text>
+
+  <line x1="245" y1="402" x2="245" y2="422" stroke="#78909C" stroke-width="1.6"/>
+  <polygon points="245,432 239,422 251,422" fill="#78909C"/>
+
+  <rect x="60" y="436" width="370" height="120" rx="10" fill="#F3E5F5" stroke="#6A1B9A" stroke-width="1.4"/>
+  <text x="245" y="464" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="600" fill="#6A1B9A">Motion estimation</text>
+  <text x="76" y="490" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#37474F">&#8226; Frame-to-frame VO (src/libviso)</text>
+  <text x="76" y="516" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#37474F">&#8226; Monocular motion / EPnP (ins-pnp.cc)</text>
+  <text x="76" y="542" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#37474F">&#8226; Relative pose (5pt &#183; 4pt &#183; 7/8pt &#183; 1pt)</text>
+
+  <!-- Right column: IGNAV core -->
+  <rect x="470" y="182" width="370" height="162" rx="10" fill="#E0F7FA" stroke="#00838F" stroke-width="1.4"/>
+  <text x="655" y="210" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="600" fill="#00838F">IGNAV processing core</text>
+  <text x="486" y="238" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#37474F">&#8226; Stream I/O, decoders, epoch alignment</text>
+  <text x="486" y="264" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#37474F">&#8226; GNSS engine (SPP / RTK / PPP)</text>
+  <text x="486" y="290" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#37474F">&#8226; INS mechanization (IMU rate)</text>
+  <text x="486" y="316" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#37474F">&#8226; Aiding &amp; constraints</text>
+
+  <!-- Merge -->
+  <line x1="245" y1="558" x2="245" y2="600" stroke="#78909C" stroke-width="1.6"/>
+  <line x1="655" y1="346" x2="655" y2="600" stroke="#78909C" stroke-width="1.6"/>
+  <line x1="245" y1="600" x2="655" y2="600" stroke="#78909C" stroke-width="1.6"/>
+  <line x1="450" y1="600" x2="450" y2="606" stroke="#78909C" stroke-width="1.6"/>
+  <polygon points="450,616 444,606 456,606" fill="#78909C"/>
+
+  <!-- Coupled EKF -->
+  <rect x="150" y="620" width="600" height="84" rx="10" fill="#E3F2FD" stroke="#1565C0" stroke-width="1.6"/>
+  <text x="450" y="650" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="15" font-weight="600" fill="#1565C0">INS/GNSS/VO coupled EKF</text>
+  <text x="450" y="676" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#455A64">ins-gnss-vo.cc — camera states: misalignment, lever arm, intrinsics, distortion</text>
+
+  <line x1="450" y1="706" x2="450" y2="726" stroke="#78909C" stroke-width="1.6"/>
+  <polygon points="450,736 444,726 456,726" fill="#78909C"/>
+
+  <!-- Solution -->
+  <rect x="150" y="740" width="600" height="64" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="1.4"/>
+  <text x="450" y="768" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14.5" font-weight="600" fill="#2E7D32">Navigation solution</text>
+  <text x="450" y="790" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#455A64">position &#183; velocity &#183; attitude</text>
+
+  <!-- MSCKF footnote -->
+  <rect x="150" y="826" width="600" height="42" rx="10" fill="#FAFAFA" stroke="#B0BEC5" stroke-width="1.2" stroke-dasharray="6 4"/>
+  <text x="450" y="852" text-anchor="middle" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#546E7A">MSCKF coupling variant: ins-gnss-vo-msckf.cc &#183; Python prototype: src/msckf-python/</text>
+</svg>
